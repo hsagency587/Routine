@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>G Work</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d0f12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top" id="top">
+
+  <div class="siren" id="siren" hidden>
+    <svg class="siren-svg" viewBox="0 0 48 48" role="img" aria-label="Un evento cade in una finestra protetta">
+      <g class="siren-rot">
+        <path class="beam" d="M24 30 L-6 17 L-6 43 Z"/>
+      </g>
+      <path class="dome" d="M11 32 a13 13 0 0 1 26 0 z"/>
+      <g class="siren-rot">
+        <ellipse class="glint" cx="18" cy="24" rx="3" ry="5"/>
+      </g>
+      <rect class="base" x="8" y="31" width="32" height="8" rx="2"/>
+    </svg>
+  </div>
+
+  <p class="fresh" id="fresh">Caricamento…</p>
+
+  <div class="daybar">
+    <button type="button" class="nav" id="prev" aria-label="Giorno precedente">&lsaquo;</button>
+    <button type="button" class="date" id="dateBtn" aria-label="Torna a oggi">
+      <span id="dateMain"></span><span class="rel" id="dateRel"></span>
+    </button>
+    <button type="button" class="nav" id="next" aria-label="Giorno successivo">&rsaquo;</button>
+  </div>
+
+  <div class="prog"><span class="prog-fill" id="progFill"></span></div>
+
+  <p class="stats">
+    <span class="pct" id="pct">0%</span>
+    <span class="sep">·</span>
+    <span class="act" id="act">—</span>
+    <span class="sep">·</span>
+    <span class="streak" id="streak">serie 0</span>
+  </p>
+
+</header>
+
+<main>
+  <h1 class="sr-only">G Work — routine del giorno</h1>
+  <ol class="list" id="list"></ol>
+</main>
+
+<footer class="foot">
+  <button type="button" class="csv" id="csv">Esporta storico CSV</button>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
