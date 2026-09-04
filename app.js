@@ -350,8 +350,7 @@ function render() {
   }
 
   paintDate();
-  paintSiren(g);
-  syncDerived();
+  syncDerived();          /* accende o spegne anche la sirena */
 }
 
 function paintDate() {
@@ -367,9 +366,10 @@ function paintDate() {
             :                                      'dopodomani';
 }
 
-/* Quando non ci sono conflitti la sirena non c'e' affatto. */
-function paintSiren(g) {
-  const any = g.some(f => f.some(e => e.alarm));
+/* La sirena gira finche' resta almeno un evento in finestra protetta da spuntare.
+   Spuntati tutti, sparisce. Il margine rosso invece resta: dice dov'era il conflitto. */
+function paintSiren(c) {
+  const any = rows.some(r => r.evs && r.evs.some(e => e.alarm && !c[e.id]));
   $('siren').hidden = !any;
   $('top').classList.toggle('has-siren', any);
 }
@@ -388,6 +388,8 @@ function syncDerived() {
     if (!active && !full) active = r;
   }
   if (active) active.el.classList.add('active');
+
+  paintSiren(c);
 
   const pct = total ? Math.round(done / total * 100) : 0;
   $('pct').textContent = pct + '%';
