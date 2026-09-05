@@ -1,44 +1,8 @@
 {
-  "generatedAt": "2026-09-05T09:18:22+02:00",
+  "generatedAt": "2026-09-05T09:20:36+02:00",
   "days": {
     "2026-09-04": [],
-    "2026-09-05": [
-      {
-        "id": "75ijac1o74r6cb9lc9i3cb9k75h3cb9oclh38b9lcdhj4opjc5i62dhk74@google.com",
-        "title": "",
-        "start": "2026-09-05T10:00:00+02:00",
-        "end": "2026-09-05T10:30:00+02:00",
-        "description": ""
-      },
-      {
-        "id": "68r66p1l70o64bb6ckq3cb9k68omabb165i34b9n6go30oj5c8s3aeb2cc@google.com",
-        "title": "",
-        "start": "2026-09-05T11:00:00+02:00",
-        "end": "2026-09-05T12:00:00+02:00",
-        "description": ""
-      },
-      {
-        "id": "bmsmi4dhgvskb932mk5j3rdfjg@google.com",
-        "title": "chiamata con Marco",
-        "start": "2026-09-05T12:00:00+02:00",
-        "end": "2026-09-05T13:00:00+02:00",
-        "description": ""
-      },
-      {
-        "id": "6oqj6p1m6cqj8bb674p6cb9k6li32b9ocor66bb1cgrmcdj1c4rm6p34ck@google.com",
-        "title": "",
-        "start": "2026-09-05T13:00:00+02:00",
-        "end": "2026-09-05T13:45:00+02:00",
-        "description": ""
-      },
-      {
-        "id": "75j62d1ncgr3eb9o75gmcb9k60o32bb260rm4b9k69i3ipb26tgjep1ncg@google.com",
-        "title": "",
-        "start": "2026-09-05T18:30:00+02:00",
-        "end": "2026-09-05T19:00:00+02:00",
-        "description": ""
-      }
-    ],
+    "2026-09-05": [],
     "2026-09-06": [],
     "2026-09-07": []
   }
