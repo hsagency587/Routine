@@ -1,0 +1,6 @@
+# calendar.json non è più versionato: lo genera il workflow di deploy a ogni
+# giro e finisce solo nell'artifact pubblicato su Pages.
+calendar.json
+
+# cartella di lavoro del deploy, costruita nel runner
+_site/
