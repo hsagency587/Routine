@@ -1,9 +1,12 @@
 name: Aggiorna calendario
 
 on:
-  # La sveglia vera: un cron esterno chiama l'API e fa partire questo workflow.
+  # La sveglia vera: un cron esterno chiama l'API ogni due minuti.
   repository_dispatch:
     types: [refresh-calendar]
+  # Una modifica al codice pubblica il sito.
+  push:
+    branches: [main]
   # Rete di sicurezza se la sveglia esterna smette di funzionare. Il cron di
   # GitHub salta molte esecuzioni, quindi non ci si conta sopra.
   schedule:
@@ -11,17 +14,29 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
+# Un solo deploy alla volta. I run che si accodano nel frattempo vengono
+# saltati tranne l'ultimo: e` cio` che impedisce alla coda di accumularsi
+# quando un run dura quanto l'intervallo della sveglia.
 concurrency:
-  group: calendar-json
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  # Un job solo: avviare un secondo runner costerebbe tempo, e qui il tempo
+  # e` la ragione per cui esiste questo workflow.
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
 
       - uses: actions/setup-node@v4
         with:
@@ -35,9 +50,10 @@ jobs:
       - name: Genera calendar.json
         env:
           GCAL_ICAL_URL: ${{ secrets.GCAL_ICAL_URL }}
+          CALENDAR_OUT: ${{ runner.temp }}/calendar.json
         run: |
           cat > "$RUNNER_TEMP/deps/build-calendar.mjs" <<'SCRIPT'
-          import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+          import { writeFileSync } from 'node:fs';
           import * as ICALmod from 'ical.js';
 
           const ICAL = ICALmod.default || ICALmod;
@@ -89,6 +105,17 @@ jobs:
               + (off < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
           }
 
+          /* Qualunque cosa vada storta qui sotto ferma il job prima del deploy:
+             meglio lasciare su Pages l'ultima versione buona che pubblicarci
+             sopra un calendario mezzo scritto. */
+          function muori(motivo) {
+            console.error(motivo + ' Non pubblico niente.');
+            process.exit(1);
+          }
+
+          const target = process.env.CALENDAR_OUT;
+          if (!target) muori('CALENDAR_OUT non e` impostato.');
+
           /* --- la finestra: ieri, oggi, domani, dopodomani in ora di Roma --- */
 
           const nowParts = romeParts(new Date());
@@ -110,21 +137,32 @@ jobs:
           /* --- scarico --- */
 
           const url = process.env.GCAL_ICAL_URL;
-          if (!url) {
-            console.error('Il secret GCAL_ICAL_URL non e` impostato.');
-            process.exit(1);
-          }
+          if (!url) muori('Il secret GCAL_ICAL_URL non e` impostato.');
 
-          const res = await fetch(url, { redirect: 'follow' });
-          if (!res.ok) {
-            console.error('Download dell`iCal fallito: HTTP ' + res.status);
-            process.exit(1);
+          let res;
+          try {
+            res = await fetch(url, { redirect: 'follow' });
+          } catch (e) {
+            muori('Download dell`iCal fallito: ' + e.message + '.');
           }
+          if (!res.ok) muori('Download dell`iCal fallito: HTTP ' + res.status + '.');
+
           const text = await res.text();
+          if (!text || text.indexOf('BEGIN:VCALENDAR') < 0) {
+            muori('La risposta non e` un iCal: manca BEGIN:VCALENDAR.');
+          }
 
           /* --- parsing --- */
 
-          const root = new ICAL.Component(ICAL.parse(text));
+          let root;
+          try {
+            root = new ICAL.Component(ICAL.parse(text));
+          } catch (e) {
+            muori('iCal illeggibile: ' + e.message + '.');
+          }
+          if (!root || root.name !== 'vcalendar') {
+            muori('Il componente radice non e` un VCALENDAR.');
+          }
 
           for (const vt of root.getAllSubcomponents('vtimezone')) {
             const tz = new ICAL.Timezone(vt);
@@ -224,45 +262,30 @@ jobs:
           for (const k of keys) out[k] = [];
           for (const b of bucket) out[b.key].push(b.item);
 
-          const target = (process.env.GITHUB_WORKSPACE || process.cwd()) + '/calendar.json';
-          const json = JSON.stringify({ generatedAt: romeISO(new Date()), days: out }, null, 2) + '\n';
-          const prev = existsSync(target) ? readFileSync(target, 'utf8') : null;
-
-          /* Il file si riscrive quando cambiano gli eventi, oppure quando il generatedAt
-             esistente ha piu` di 10 minuti. Quel battito tiene viva la barra di freschezza
-             dell'app senza committare a ogni esecuzione: 6 build/ora, ancora dentro il
-             limite morbido di 10 build/ora di GitHub Pages. */
-          const HEARTBEAT_MS = 10 * 60 * 1000;
-
-          let sameDays = false, recent = false;
-          if (prev) {
-            try {
-              const old = JSON.parse(prev);
-              sameDays = JSON.stringify(old.days) === JSON.stringify(out);
-              const t = Date.parse(old.generatedAt);
-              recent = Number.isFinite(t) && (Date.now() - t) < HEARTBEAT_MS;
-            } catch (e) {
-              /* file illeggibile: si riscrive */
-            }
-          }
-
-          if (sameDays && recent) {
-            console.log('Eventi invariati e battito recente: calendar.json non riscritto.');
-          } else {
-            writeFileSync(target, json);
-            console.log('calendar.json aggiornato: ' + bucket.length + ' occorrenze su ' + keys.join(', ') + '.');
-          }
+          /* Niente freno e niente confronto con la versione precedente: il file
+             non e` piu` versionato, e` un prodotto del deploy. Si genera ogni volta. */
+          writeFileSync(target, JSON.stringify({ generatedAt: romeISO(new Date()), days: out }, null, 2) + '\n');
+          console.log('calendar.json generato: ' + bucket.length + ' occorrenze su ' + keys.join(', ') + '.');
           SCRIPT
           node "$RUNNER_TEMP/deps/build-calendar.mjs"
 
-      - name: Committa solo se e' cambiato
+      - name: Prepara _site
         run: |
-          if [ -z "$(git status --porcelain -- calendar.json)" ]; then
-            echo "Niente da committare."
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add calendar.json
-          git commit -m "chore: aggiorna calendar.json"
-          git push || (git pull --rebase && git push)
+          mkdir -p _site
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            --exclude='_site' \
+            ./ _site/
+          cp "$RUNNER_TEMP/calendar.json" _site/calendar.json
+          echo "Contenuto di _site:"
+          ls -la _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

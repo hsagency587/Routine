@@ -8,12 +8,13 @@
 const CHECKS_KEY  = 'gwork-checks-v1';
 const RECORDS_KEY = 'gwork-records-v1';
 const LEGACY_KEY  = 'hs-personal-routine-v1';
-/* Il ponte riscrive generatedAt ogni 10 minuti al massimo. Le soglie stanno
-   sopra quel battito piu' il ritardo fisiologico della pubblicazione di Pages:
-   fino a 20 minuti e' tutto normale e la barra resta verde; oltre 20 il ponte
-   sta accumulando ritardo; oltre 60 e' fermo davvero. */
-const LATE_MS     = 20 * 60 * 1000;
-const DOWN_MS     = 60 * 60 * 1000;
+/* Il ciclo di pubblicazione dura circa due minuti e mezzo, quindi l'orario che
+   si legge sulla barra ha fisiologicamente fra i 2 e i 4 minuti e mezzo. Le
+   soglie stanno sopra quella fascia per non dare falsi allarmi: fino a 10
+   minuti e' tutto normale; oltre 10 il ponte sta accumulando ritardo; oltre 30
+   e' fermo davvero. */
+const LATE_MS     = 10 * 60 * 1000;
+const DOWN_MS     = 30 * 60 * 1000;
 
 /* Le sei fasce delle G Work Session, in minuti dalla mezzanotte. Coprono le 24 ore. */
 const FASCE = [[0, 540], [540, 630], [630, 855], [855, 960], [960, 1140], [1140, 1440]];
@@ -532,7 +533,7 @@ render();
 loadCalendar();
 
 setInterval(paintFresh, 30000);   /* invecchia la riga fra una lettura e l'altra */
-setInterval(loadCalendar, 60000); /* rilegge il file: senza, generatedAt resta fermo */
+setInterval(loadCalendar, 30000); /* rilegge il file: senza, generatedAt resta fermo */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadCalendar();
 });
