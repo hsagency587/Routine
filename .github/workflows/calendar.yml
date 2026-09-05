@@ -1,6 +1,11 @@
 name: Aggiorna calendario
 
 on:
+  # La sveglia vera: un cron esterno chiama l'API e fa partire questo workflow.
+  repository_dispatch:
+    types: [refresh-calendar]
+  # Rete di sicurezza se la sveglia esterna smette di funzionare. Il cron di
+  # GitHub salta molte esecuzioni, quindi non ci si conta sopra.
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
