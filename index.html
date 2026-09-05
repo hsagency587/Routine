@@ -59,8 +59,31 @@
 </main>
 
 <footer class="foot">
-  <button type="button" class="csv" id="csv">Esporta storico CSV</button>
+  <div class="storico">
+    <select class="mese" id="mese" aria-label="Mese dello storico"></select>
+    <button type="button" class="scarica" id="scarica">Scarica</button>
+  </div>
 </footer>
+
+<dialog class="chiusura" id="chiusura" aria-labelledby="chiusuraTit">
+  <form method="dialog" class="chiusura-box" id="chiusuraForm">
+    <h2 class="chiusura-tit" id="chiusuraTit">Chiusura giornata</h2>
+    <p class="chiusura-day" id="chiusuraDay"></p>
+
+    <p class="voto-num" id="votoNum">5.5</p>
+    <input type="range" class="voto" id="voto" min="1" max="10" step="0.1" value="5.5"
+           aria-label="Voto della giornata, da 1 a 10">
+    <p class="voto-scala"><span>1</span><span>10</span></p>
+
+    <label class="commento-lab" for="commento">Commento</label>
+    <textarea class="commento" id="commento" rows="5" placeholder="Com'è andata?"></textarea>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="chiusuraAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Chiudi la giornata</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="app.js"></script>
 </body>

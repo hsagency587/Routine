@@ -4,3 +4,6 @@ calendar.json
 
 # cartella di lavoro del deploy, costruita nel runner
 _site/
+
+# i mesi dello storico contengono i commenti delle giornate: restano in locale
+storico/storico-*.md

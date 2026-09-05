@@ -7,6 +7,7 @@
 
 const CHECKS_KEY  = 'gwork-checks-v1';
 const RECORDS_KEY = 'gwork-records-v1';
+const DIARIO_KEY  = 'gwork-diario-v1';
 const LEGACY_KEY  = 'hs-personal-routine-v1';
 /* Il ciclo di pubblicazione dura circa due minuti e mezzo, quindi l'orario che
    si legge sulla barra ha fisiologicamente fra i 2 e i 4 minuti e mezzo. Le
@@ -69,9 +70,13 @@ const ROUTINE = [
     { id: 'serale-domani',  t: 'DOMANI ORGANIZZATO' },
     { id: 'serale-gambe',   t: 'GAMBE SUL MURO' }
   ]},
-  { id: 'non-masturbarti', t: 'NON MASTURBARTI' },
+  { id: 'non-masturbarti', t: 'NO 🌽' },
   { id: 'main-target',     t: 'MAIN TARGET OF THE DAY RAGGIUNTO' }
 ];
+
+/* La tappa che chiude la giornata: spuntarla chiede il voto e il commento.
+   L'id resta quello vecchio, cosi' le spunte gia' date non si perdono. */
+const CLOSE_ID = 'non-masturbarti';
 
 /* ---------------------------------------------------------------- date --- */
 
@@ -127,8 +132,20 @@ function writeStore(key, val) {
 
 let checks  = readStore(CHECKS_KEY);
 let records = readStore(RECORDS_KEY);
+let diario  = readStore(DIARIO_KEY);
 
 const dayChecks = k => (checks[k] && typeof checks[k] === 'object') ? checks[k] : {};
+
+/* Un giorno e' chiuso quando la tappa di chiusura e' spuntata e il voto c'e'.
+   Togliendo la spunta il giorno si riapre, ma voto e commento restano scritti:
+   tornano nel pop-up se la giornata si richiude. */
+const isClosed = k => !!(dayChecks(k)[CLOSE_ID] && diario[k]);
+
+function setDiario(k, voto, commento) {
+  if (!isEditable(k)) return;
+  diario[k] = { voto: voto, commento: commento };
+  writeStore(DIARIO_KEY, diario);
+}
 
 function setCheck(k, id, on) {
   if (!isEditable(k)) return;
@@ -193,12 +210,21 @@ function groupEvents(k) {
 
 /* ---------------------------------------------------------- conteggio --- */
 
-function tappaState(t, c, evs) {
-  let total = 1, done = c[t.id] ? 1 : 0;
+/* Le figlie di una tappa: sottotappe, alternative ed eventi del calendario. */
+function childState(t, c, evs) {
+  let total = 0, done = 0;
   if (t.sub)    for (const s of t.sub) { total++; if (c[s.id]) done++; }
   if (t.choice) { total++; if (t.choice.some(o => c[o.id])) done++; }
   if (evs)      for (const e of evs) { total++; if (c[e.id]) done++; }
   return { total, done };
+}
+
+/* Spuntata la tappa, il blocco vale completo: le figlie rimaste indietro non
+   pesano piu' sul totale della giornata. */
+function tappaState(t, c, evs) {
+  const ch = childState(t, c, evs);
+  const total = ch.total + 1;
+  return { total, done: c[t.id] ? total : ch.done };
 }
 
 function tally(k) {
@@ -231,12 +257,94 @@ function refreshRecords() {
   writeStore(RECORDS_KEY, records);
 }
 
-function streak() {
-  const complete = k => !!(records[k] && records[k].completo);
-  let d = today(), n = 0;
-  if (!complete(dayKey(d))) d = shift(d, -1);  /* oggi non ancora chiuso non azzera la serie */
+/* La serie come stava quel giorno: zero se il giorno stesso non e' completo. */
+function streakAt(k) {
+  const complete = x => !!(records[x] && records[x].completo);
+  let d = new Date(k + 'T00:00:00'), n = 0;
   while (complete(dayKey(d))) { n++; d = shift(d, -1); }
   return n;
+}
+
+function streak() {
+  const t = today();
+  /* oggi non ancora chiuso non azzera la serie: si guarda a ieri */
+  return streakAt(dayKey(t)) || streakAt(dayKey(shift(t, -1)));
+}
+
+/* ------------------------------------------------------------ storico --- */
+
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+              'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+
+const monthKey  = k => k.slice(0, 7);
+const monthName = m => MESI[+m.slice(5, 7) - 1] + ' ' + m.slice(0, 4);
+
+const fmtLong = new Intl.DateTimeFormat('it-IT',
+  { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/* Un giorno entra nello storico se ha lasciato una traccia: almeno una spunta,
+   oppure una chiusura. I giorni vuoti non si scrivono. */
+const hasTrace = k => !!((records[k] && records[k].fatte > 0) || diario[k]);
+
+function storicoDays(m) {
+  const set = {};
+  for (const k of Object.keys(records)) if (monthKey(k) === m && hasTrace(k)) set[k] = 1;
+  for (const k of Object.keys(diario))  if (monthKey(k) === m) set[k] = 1;
+  return Object.keys(set).sort();
+}
+
+function storicoMonths() {
+  const set = {};
+  for (const k of Object.keys(records)) if (hasTrace(k)) set[monthKey(k)] = 1;
+  for (const k of Object.keys(diario))  set[monthKey(k)] = 1;
+  return Object.keys(set).sort().reverse();   /* il mese in corso per primo */
+}
+
+/* Un mese, un file. I giorni uno sotto l'altro invece che in tabella: cosi' si
+   legge ordinato sul telefono anche senza niente che interpreti il Markdown. */
+function monthMarkdown(m) {
+  const days   = storicoDays(m);
+  const chiuse = days.filter(isClosed);
+
+  let voti = 0, pct = 0;
+  for (const k of chiuse) voti += diario[k].voto;
+  for (const k of days)   pct  += (records[k] ? records[k].percentuale : 0);
+
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const out = ['# Storico G Work — ' + monthName(m), ''];
+
+  out.push('Giorni con attività: ' + days.length
+    + ' · giornate chiuse: ' + chiuse.length
+    + (chiuse.length ? ' · voto medio: ' + (voti / chiuse.length).toFixed(1) : '')
+    + (days.length   ? ' · completamento medio: ' + Math.round(pct / days.length) + '%' : ''));
+
+  for (const k of days) {
+    const r = records[k] || { fatte: 0, totale: 0, percentuale: 0 };
+    const d = isClosed(k) ? diario[k] : null;
+
+    out.push('', '---', '');
+    out.push('## ' + cap(fmtLong.format(new Date(k + 'T00:00:00'))));
+    out.push('');
+    out.push((d ? 'Voto ' + d.voto.toFixed(1) : 'Giornata non chiusa')
+      + ' · ' + r.percentuale + '% (' + r.fatte + ' su ' + r.totale + ')'
+      + ' · serie ' + streakAt(k));
+
+    const c = d && String(d.commento || '').trim();
+    if (c) out.push('', c);
+  }
+
+  return out.join('\n') + '\n';
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type: type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ------------------------------------------------------------- pagina --- */
@@ -370,22 +478,52 @@ function paintDate() {
 }
 
 /* La sirena gira finche' resta almeno un evento in finestra protetta da spuntare.
-   Spuntati tutti, sparisce. Il margine rosso invece resta: dice dov'era il conflitto. */
+   Spuntati tutti, sparisce. Chiusa la tappa non suona piu': quegli eventi ormai
+   sono congelati e non si possono piu' spuntare. Il margine rosso invece resta:
+   dice dov'era il conflitto. */
 function paintSiren(c) {
-  const any = rows.some(r => r.evs && r.evs.some(e => e.alarm && !c[e.id]));
+  const any = rows.some(r => r.evs && !c[r.t.id] && r.evs.some(e => e.alarm && !c[e.id]));
   $('siren').hidden = !any;
   $('top').classList.toggle('has-siren', any);
 }
 
-function syncDerived() {
+/* Spuntate tutte le figlie, la tappa che le conteneva si chiude da sola. */
+function autoClose() {
+  if (!isEditable(viewKey)) return;
   const c = dayChecks(viewKey);
+  for (const r of rows) {
+    const ch = childState(r.t, c, r.evs);
+    if (!ch.total || ch.done !== ch.total || c[r.t.id]) continue;
+    setCheck(viewKey, r.t.id, true);
+    const box = r.el.querySelector('input[data-key="' + r.t.id + '"]');
+    if (box) {
+      box.checked = true;
+      box.closest('.row').classList.add('on');
+    }
+  }
+}
+
+/* Tappa chiusa: le figlie restano allo stato in cui sono — gli incompleti
+   incompleti, i completi completi — e non si toccano piu'. */
+function lockRow(r, closed, ro) {
+  r.el.classList.toggle('closed', closed);
+  r.el.querySelectorAll('input[data-key]').forEach(i => {
+    if (i.dataset.key !== r.t.id) i.disabled = closed || ro;
+  });
+}
+
+function syncDerived() {
+  autoClose();
+  const c = dayChecks(viewKey);
+  const ro = !isEditable(viewKey);
   let total = 0, done = 0, active = null;
 
   for (const r of rows) {
     const st = tappaState(r.t, c, r.evs);
     total += st.total;
     done  += st.done;
-    const full = st.done === st.total;
+    const full = !!c[r.t.id];        /* la tappa spuntata e' chiusa, comunque stiano le figlie */
+    lockRow(r, full, ro);
     r.el.classList.toggle('done', full);
     r.el.classList.remove('active');
     if (!active && !full) active = r;
@@ -400,11 +538,37 @@ function syncDerived() {
   $('act').textContent = active ? active.t.t : 'giornata completa';
 
   refreshRecords();
+  paintMesi();
 
   const n = streak();
   const s = $('streak');
   s.textContent = 'serie ' + n;
   s.classList.toggle('hot', n > 0);
+}
+
+/* firma dell'elenco: non si ridisegna a ogni spunta. Parte da null perche' la
+   firma dell'elenco vuoto e' la stringa vuota, e il primo giro deve passare. */
+let mesiSig = null;
+
+function paintMesi() {
+  const ms  = storicoMonths();
+  const sig = ms.join(',');
+  if (sig === mesiSig) return;
+  mesiSig = sig;
+
+  const sel = $('mese');
+  const cur = sel.value;
+  sel.textContent = '';
+  for (const m of ms) {
+    const o = el('option', null, monthName(m));
+    o.value = m;
+    sel.appendChild(o);
+  }
+  if (!ms.length) sel.appendChild(el('option', null, 'nessuno storico'));
+  if (ms.indexOf(cur) >= 0) sel.value = cur;   /* il mese scelto non salta via */
+
+  sel.disabled = !ms.length;
+  $('scarica').disabled = !ms.length;
 }
 
 function ageText(ms) {
@@ -464,6 +628,10 @@ $('list').addEventListener('change', ev => {
   }
 
   i.closest('.row').classList.toggle('on', i.checked);
+
+  /* la giornata finisce qui: prima il voto e il commento, poi e' chiusa */
+  if (i.dataset.key === CLOSE_ID && i.checked) openChiusura();
+
   syncDerived();
 });
 
@@ -486,21 +654,74 @@ $('prev').addEventListener('click', () => goTo(shift(view, -1)));
 $('next').addEventListener('click', () => goTo(shift(view, 1)));
 $('dateBtn').addEventListener('click', () => goTo(today()));
 
-$('csv').addEventListener('click', () => {
-  const lines = ['data,fatte,totale,percentuale'];
-  for (const k of Object.keys(records).sort()) {
-    const r = records[k] || {};
-    lines.push([k, r.fatte | 0, r.totale | 0, r.percentuale | 0].join(','));
+$('scarica').addEventListener('click', () => {
+  const m = $('mese').value;
+  if (!m) return;
+  download('storico-' + m + '.md', monthMarkdown(m), 'text/markdown;charset=utf-8');
+});
+
+/* ------------------------------------------------------------ chiusura --- */
+
+const dlg = $('chiusura');
+
+/* Dal rosso dell'1 al verde del 10: il numero e il cursore prendono lo stesso
+   colore, cosi' il voto si legge anche senza guardare la cifra. */
+function paintVoto(v) {
+  $('votoNum').textContent = v.toFixed(1);
+  document.documentElement.style.setProperty('--voto-col',
+    'hsl(' + Math.round((v - 1) / 9 * 120) + ' 80% 52%)');
+}
+
+function openChiusura() {
+  const d = diario[viewKey] || {};
+  const v = typeof d.voto === 'number' ? d.voto : 5.5;   /* il centro esatto della scala */
+  $('voto').value = v;
+  paintVoto(v);
+  $('commento').value = d.commento || '';
+  $('chiusuraDay').textContent = fmtLong.format(view);
+  dlg.returnValue = '';
+  dlg.showModal();
+}
+
+$('voto').addEventListener('input', e => paintVoto(+e.target.value));
+
+/* Annullare — bottone o tasto Esc — vuol dire che la giornata non e' chiusa:
+   la spunta torna indietro. Voto e commento gia' scritti restano dov'erano. */
+function annullaChiusura() {
+  setCheck(viewKey, CLOSE_ID, false);
+  const box = $('list').querySelector('input[data-key="' + CLOSE_ID + '"]');
+  if (box) {
+    box.checked = false;
+    box.closest('.row').classList.remove('on');
   }
-  const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'gwork-storico.csv';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  syncDerived();
+}
+
+/* Confermare scrive voto e commento. */
+$('chiusuraForm').addEventListener('submit', () => {
+  setDiario(viewKey, +$('voto').value, $('commento').value);
+  syncDerived();
+});
+
+$('chiusuraAnnulla').addEventListener('click', () => {
+  annullaChiusura();
+  dlg.close();
+});
+
+/* Esc, e sul telefono il tasto indietro: il dialogo si chiude comunque, ma la
+   chiusura esplicita vale anche dove il browser non la fa da solo. */
+dlg.addEventListener('cancel', () => {
+  annullaChiusura();
+  dlg.close();
+});
+
+/* Rete di sicurezza: se il dialogo si chiude per una via che non ho previsto,
+   quello che conta e' se la conferma e' passata o no. Le due strade qui sopra
+   sono ripetibili senza danno, quindi ripassarci non cambia niente. */
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue === 'ok') setDiario(viewKey, +$('voto').value, $('commento').value);
+  else annullaChiusura();
+  syncDerived();
 });
 
 /* ---------------------------------------------------------- avviamento --- */
