@@ -229,10 +229,10 @@ jobs:
           const prev = existsSync(target) ? readFileSync(target, 'utf8') : null;
 
           /* Il file si riscrive quando cambiano gli eventi, oppure quando il generatedAt
-             esistente ha piu` di 15 minuti. Quel battito tiene viva la barra di freschezza
-             dell'app senza produrre un commit ogni 5 minuti: 4 build/ora invece di 12,
-             dentro il limite di GitHub Pages. */
-          const HEARTBEAT_MS = 15 * 60 * 1000;
+             esistente ha piu` di 10 minuti. Quel battito tiene viva la barra di freschezza
+             dell'app senza committare a ogni esecuzione: 6 build/ora, ancora dentro il
+             limite morbido di 10 build/ora di GitHub Pages. */
+          const HEARTBEAT_MS = 10 * 60 * 1000;
 
           let sameDays = false, recent = false;
           if (prev) {

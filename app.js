@@ -8,10 +8,12 @@
 const CHECKS_KEY  = 'gwork-checks-v1';
 const RECORDS_KEY = 'gwork-records-v1';
 const LEGACY_KEY  = 'hs-personal-routine-v1';
-/* L'Action riscrive generatedAt ogni 15 minuti al massimo. La soglia sta a 45
-   perche' il cron di GitHub ritarda: battito piu' ritardo deve restare nel verde,
-   altrimenti la barra segnala guasti che non ci sono. */
-const STALE_MS    = 45 * 60 * 1000;
+/* Il ponte riscrive generatedAt ogni 10 minuti al massimo. Le soglie stanno
+   sopra quel battito piu' il ritardo fisiologico della pubblicazione di Pages:
+   fino a 20 minuti e' tutto normale e la barra resta verde; oltre 20 il ponte
+   sta accumulando ritardo; oltre 60 e' fermo davvero. */
+const LATE_MS     = 20 * 60 * 1000;
+const DOWN_MS     = 60 * 60 * 1000;
 
 /* Le sei fasce delle G Work Session, in minuti dalla mezzanotte. Coprono le 24 ore. */
 const FASCE = [[0, 540], [540, 630], [630, 855], [855, 960], [960, 1140], [1140, 1440]];
@@ -429,9 +431,12 @@ function paintFresh() {
   }
   const age = Date.now() - t.getTime();
   const hhmm = fmtTime.format(t);
-  if (age > STALE_MS) {
-    f.classList.add('stale');
+  if (age > DOWN_MS) {                 /* prima il rosso: e' la soglia piu' alta */
+    f.classList.add('down');
     f.textContent = 'FERMO — ultimo aggiornamento alle ' + hhmm + ' (' + ageText(age) + ')';
+  } else if (age > LATE_MS) {
+    f.classList.add('stale');
+    f.textContent = 'In ritardo — ultimo aggiornamento alle ' + hhmm + ' (' + ageText(age) + ')';
   } else {
     f.textContent = 'Aggiornato alle ' + hhmm;
   }
@@ -526,7 +531,8 @@ async function loadCalendar() {
 render();
 loadCalendar();
 
-setInterval(paintFresh, 30000);
+setInterval(paintFresh, 30000);   /* invecchia la riga fra una lettura e l'altra */
+setInterval(loadCalendar, 60000); /* rilegge il file: senza, generatedAt resta fermo */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) loadCalendar();
 });
