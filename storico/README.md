@@ -14,4 +14,5 @@ sostituisce il vecchio.
 
 I file `storico-*.md` sono esclusi da git e dal deploy: contengono i commenti
 delle giornate e non devono finire online. Se un giorno si vuole versionarli,
-si toglie la riga da `.gitignore` e l'`--exclude` da `.github/workflows/calendar.yml`.
+si toglie la riga da `.gitignore` e l'`--exclude='storico'` da
+`.github/workflows/pages.yml`.

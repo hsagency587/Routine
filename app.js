@@ -17,6 +17,7 @@ const LEGACY_KEY  = 'hs-personal-routine-v1';
 const TASKS_KEY    = 'gwork-tasks-v1';       /* { tasks, sha, dirty, known } */
 const TOKEN_KEY    = 'gwork-token-v1';
 const ARCHIVIO_KEY = 'gwork-taskfatte-v1';   /* task fatte uscite dalla finestra */
+const MANCATE_KEY  = 'gwork-taskmancate-v1'; /* task lasciate indietro, giorno per giorno */
 const TASK_BRANCH  = 'task';
 const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/tasks.json';
 const RANKS        = ['A', 'B', 'C'];
@@ -245,7 +246,12 @@ function dayTasks(k) {
    conta uno. Tutto il conteggio passa di qui, cosi' non puo' divergere. */
 function childrenOf(k) {
   const g = groupEvents(k), t = dayTasks(k);
-  return g.map((evs, i) => evs.concat(t[i].map(x => ({ id: x.id, task: x }))));
+  const m = mancate[k] || [];
+  /* le task lasciate indietro restano figlie del giorno, non fatte, con un id
+     che nessuno spuntera' mai: cosi' il conteggio di ieri non cambia */
+  return g.map((evs, i) => evs
+    .concat(t[i].map(x => ({ id: x.id, task: x })))
+    .concat(m.filter(x => x.gws === i).map((x, n) => ({ id: 'mancata:' + k + ':' + i + ':' + n, mancata: x }))));
 }
 
 /* ---------------------------------------------------------- conteggio --- */
@@ -325,13 +331,15 @@ const fmtLong = new Intl.DateTimeFormat('it-IT',
 /* Un giorno entra nello storico se ha lasciato una traccia: almeno una spunta,
    oppure una chiusura. I giorni vuoti non si scrivono. */
 const hasTrace = k => !!((records[k] && records[k].fatte > 0) || diario[k]
-                         || (archivio[k] && archivio[k].length));
+                         || (archivio[k] && archivio[k].length)
+                         || (mancate[k] && mancate[k].length));
 
 function storicoDays(m) {
   const set = {};
   for (const k of Object.keys(records))  if (monthKey(k) === m && hasTrace(k)) set[k] = 1;
   for (const k of Object.keys(diario))   if (monthKey(k) === m) set[k] = 1;
   for (const k of Object.keys(archivio)) if (monthKey(k) === m) set[k] = 1;
+  for (const k of Object.keys(mancate))  if (monthKey(k) === m) set[k] = 1;
   return Object.keys(set).sort();
 }
 
@@ -340,6 +348,7 @@ function storicoMonths() {
   for (const k of Object.keys(records))  if (hasTrace(k)) set[monthKey(k)] = 1;
   for (const k of Object.keys(diario))   set[monthKey(k)] = 1;
   for (const k of Object.keys(archivio)) set[monthKey(k)] = 1;
+  for (const k of Object.keys(mancate))  set[monthKey(k)] = 1;
   return Object.keys(set).sort().reverse();   /* il mese in corso per primo */
 }
 
@@ -387,6 +396,10 @@ function monthMarkdown(m) {
     const fatte = doneTasks(k);
     if (fatte.length) {
       out.push('', 'Task fatte: ' + fatte.map(x => '[' + x.rank + '] ' + x.nome).join(' · '));
+    }
+    const lasciate = (mancate[k] || []).slice().sort(byRank);
+    if (lasciate.length) {
+      out.push('', 'Task lasciate indietro: ' + lasciate.map(x => '[' + x.rank + '] ' + x.nome).join(' · '));
     }
   }
 
@@ -505,7 +518,31 @@ function taskNode(x, on) {
   return li;
 }
 
+/* Una task lasciata indietro: a mezzanotte e' tornata nel serbatoio, ma il
+   giorno la ricorda com'era, non fatta. Si guarda e basta: la casella e'
+   spenta per sempre, e lockRow la lascia stare. */
+function ghostNode(x, id) {
+  const li = el('li', 'ev task mancata');
+  const bar = el('div', 'evrow');
+  const l = el('label', 'row');
+  const i = el('input');
+  i.type = 'checkbox';
+  i.disabled = true;
+  i.dataset.key = id;
+  i.dataset.mancata = '1';
+  l.appendChild(i);
+  l.appendChild(el('span', 'rank r' + x.rank, x.rank));
+  l.appendChild(el('span', 'ttl', x.nome));
+  l.appendChild(el('span', 'twhen', 'nel serbatoio'));
+  bar.appendChild(l);
+  li.appendChild(bar);
+  return li;
+}
+
+let renderedDay = null;           /* il giorno "oggi" dell'ultimo disegno */
+
 function render() {
+  renderedDay = dayKey(today());
   tidyTasks();                    /* mezzanotte: chi torna nel serbatoio, chi va in archivio */
   const c = dayChecks(viewKey);
   const g = childrenOf(viewKey);
@@ -558,7 +595,9 @@ function render() {
       if (evs.length) {
         const ul = el('ul', 'evs');
         for (const e of evs) {
-          ul.appendChild(e.task ? taskNode(e.task, !!c[e.id]) : eventNode(e, !!c[e.id]));
+          ul.appendChild(e.mancata ? ghostNode(e.mancata, e.id)
+                       : e.task    ? taskNode(e.task, !!c[e.id])
+                       :             eventNode(e, !!c[e.id]));
         }
         li.appendChild(ul);
       }
@@ -602,11 +641,22 @@ function paintSiren(c) {
   $('top').classList.toggle('has-siren', any);
 }
 
+/* La tappa che l'utente ha appena riaperto a mano: non si richiude nello
+   stesso tocco, altrimenti una figlia spuntata per sbaglio non si potrebbe
+   piu' correggere. Al tocco successivo su qualunque casella torna tutto
+   normale. */
+let riaperta = null;
+
 /* Spuntate tutte le figlie, la tappa che le conteneva si chiude da sola. */
 function autoClose() {
   if (!isEditable(viewKey)) return;
+  /* con il calendario non ancora arrivato le sessioni hanno solo le task:
+     chiuderle adesso congelerebbe gli eventi in arrivo come gia' fatti */
+  const senzaCal = !isCovered(viewKey);
   const c = dayChecks(viewKey);
   for (const r of rows) {
+    if (r.t.gws != null && senzaCal) continue;
+    if (r.t.id === riaperta) continue;
     const ch = childState(r.t, c, r.evs);
     if (!ch.total || ch.done !== ch.total || c[r.t.id]) continue;
     setCheck(viewKey, r.t.id, true);
@@ -623,7 +673,7 @@ function autoClose() {
 function lockRow(r, closed, ro) {
   r.el.classList.toggle('closed', closed);
   r.el.querySelectorAll('input[data-key]').forEach(i => {
-    if (i.dataset.key !== r.t.id) i.disabled = closed || ro;
+    if (i.dataset.key !== r.t.id && !i.dataset.mancata) i.disabled = closed || ro;
   });
 }
 
@@ -700,10 +750,27 @@ function durata(ms) {
    distinguere "il ponte e' vivo" da "gira ma fallisce" da "non parte piu'". */
 let beat   = null;
 let beatOk = false;               /* l'ultima interrogazione e' riuscita */
+let beatAuth  = true;             /* col token si usa la quota personale (5000/ora) */
+let beatQuota = 0;                /* quota anonima esaurita: fino a quando (ms) */
 
 async function loadBeat() {
+  if (beatQuota && Date.now() < beatQuota) { paintFresh(); return; }
+  beatQuota = 0;
   try {
-    const r = await fetch(RUNS_URL, { cache: 'no-store' });
+    let r = await fetch(RUNS_URL, { cache: 'no-store', headers: beatAuth && token ? ghHeaders() : {} });
+    /* un fine-grained token senza il permesso Actions puo' rispondere 403
+       anche su un repo pubblico: si riprova anonimi e si resta anonimi */
+    if ((r.status === 401 || r.status === 403) && beatAuth && token) {
+      beatAuth = false;
+      r = await fetch(RUNS_URL, { cache: 'no-store' });
+    }
+    /* la quota anonima e' per indirizzo, e sul 5G l'indirizzo e' condiviso:
+       finita, si aspetta l'ora del reset invece di gridare al lupo */
+    if ((r.status === 403 || r.status === 429) && r.headers.get('x-ratelimit-remaining') === '0') {
+      const reset = (+r.headers.get('x-ratelimit-reset') || 0) * 1000;
+      beatQuota = reset > Date.now() ? reset : Date.now() + 5 * 60000;
+      throw new Error('quota');
+    }
     if (!r.ok) throw new Error(String(r.status));
     const j = await r.json();
     const runs = Array.isArray(j.workflow_runs) ? j.workflow_runs : [];
@@ -731,6 +798,12 @@ function paintFresh() {
   if (loaded && !cal) {
     f.classList.add('down');
     f.textContent = 'Calendario non raggiungibile';
+    return;
+  }
+
+  if (beatQuota && Date.now() < beatQuota) {
+    f.classList.add('muto');
+    f.textContent = 'Quota API esaurita fino alle ' + fmtTime.format(new Date(beatQuota));
     return;
   }
 
@@ -770,8 +843,17 @@ function paintFresh() {
 $('list').addEventListener('change', ev => {
   const i = ev.target;
   if (!i.dataset || !i.dataset.key) return;
+  const key = i.dataset.key;
 
-  setCheck(viewKey, i.dataset.key, i.checked);
+  /* la giornata finisce qui: la spunta si scrive solo dopo voto e commento,
+     cosi' se l'app muore col pop-up aperto non resta una chiusura senza voto */
+  if (key === CLOSE_ID && i.checked) {
+    i.closest('.row').classList.add('on');
+    openChiusura();
+    return;
+  }
+
+  setCheck(viewKey, key, i.checked);
 
   /* FULL e MED sono alternative: spuntarne una esclude l'altra */
   if (i.checked && i.dataset.choice) {
@@ -787,8 +869,8 @@ $('list').addEventListener('change', ev => {
 
   i.closest('.row').classList.toggle('on', i.checked);
 
-  /* la giornata finisce qui: prima il voto e il commento, poi e' chiusa */
-  if (i.dataset.key === CLOSE_ID && i.checked) openChiusura();
+  /* una tappa riaperta a mano non si richiude nello stesso tocco */
+  riaperta = (!i.checked && ROUTINE.some(t => t.id === key)) ? key : null;
 
   syncDerived();
 });
@@ -811,7 +893,19 @@ $('list').addEventListener('click', ev => {
 function goTo(d) {
   view = d;
   viewKey = dayKey(view);
+  riaperta = null;
   render();
+}
+
+/* E' scattata la mezzanotte con l'app aperta, o ripresa dallo sfondo? Se si
+   stava guardando oggi si passa al nuovo oggi; altrimenti basta ridisegnare,
+   che aggiorna etichette, + e regola di mezzanotte. Un confronto di stringhe,
+   nessuna rete. */
+function checkDay() {
+  const t = dayKey(today());
+  if (t === renderedDay) return;
+  if (viewKey === renderedDay) goTo(today());
+  else render();
 }
 
 $('prev').addEventListener('click', () => goTo(shift(view, -1)));
@@ -861,11 +955,15 @@ function annullaChiusura() {
   syncDerived();
 }
 
-/* Confermare scrive voto e commento. */
-$('chiusuraForm').addEventListener('submit', () => {
+/* Confermare scrive la spunta di chiusura insieme a voto e commento. */
+function confermaChiusura() {
+  setCheck(viewKey, CLOSE_ID, true);
   setDiario(viewKey, +$('voto').value, $('commento').value);
+  riaperta = null;
   syncDerived();
-});
+}
+
+$('chiusuraForm').addEventListener('submit', confermaChiusura);
 
 $('chiusuraAnnulla').addEventListener('click', () => {
   annullaChiusura();
@@ -883,9 +981,8 @@ dlg.addEventListener('cancel', () => {
    quello che conta e' se la conferma e' passata o no. Le due strade qui sopra
    sono ripetibili senza danno, quindi ripassarci non cambia niente. */
 dlg.addEventListener('close', () => {
-  if (dlg.returnValue === 'ok') setDiario(viewKey, +$('voto').value, $('commento').value);
+  if (dlg.returnValue === 'ok') confermaChiusura();
   else annullaChiusura();
-  syncDerived();
 });
 
 /* ---------------------------------------------------------------- task --- */
@@ -899,6 +996,7 @@ if (!Array.isArray(tstore.tasks)) tstore = { tasks: [], sha: null, dirty: false,
 if (!Array.isArray(tstore.known)) tstore.known = [];
 
 let archivio = readStore(ARCHIVIO_KEY);
+let mancate  = readStore(MANCATE_KEY);
 
 let token = '';
 try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente token */ }
@@ -957,14 +1055,28 @@ function tidyTasks() {
       changed = true;
       return false;
     }
-    if (x.giorno < t0) { x.giorno = null; x.gws = null; changed = true; }
+    if (x.giorno < t0) {
+      /* il giorno la ricorda com'era, non fatta: il conteggio di ieri non cambia */
+      if (!mancate[x.giorno]) mancate[x.giorno] = [];
+      mancate[x.giorno].push({ nome: x.nome, rank: x.rank, gws: x.gws });
+      x.giorno = null; x.gws = null; changed = true;
+    }
     return true;
   });
 
   if (changed) {
     writeStore(ARCHIVIO_KEY, archivio);
+    writeStore(MANCATE_KEY, mancate);
     touch();
   }
+}
+
+/* Una sessione gia' chiusa che riceve una task non e' piu' finita: si riapre,
+   cosi' la task si puo' spuntare e non nasce gia' contata come fatta. */
+function riapriSessione(x) {
+  if (!x.giorno || x.gws == null) return;
+  const t = ROUTINE.find(r => r.gws === x.gws);
+  if (t && dayChecks(x.giorno)[t.id]) setCheck(x.giorno, t.id, false);
 }
 
 /* ------------------------------------------------------------- menu' ---- */
@@ -1107,19 +1219,28 @@ $('editorForm').addEventListener('click', ev => {
   paintEditor();
 });
 
-$('editorForm').addEventListener('submit', () => {
+$('editorForm').addEventListener('submit', ev => {
   const nome = $('tNome').value.trim();
-  if (!nome || !ed) return;
+  if (!nome) {
+    /* soli spazi: required passa, ma il dialogo resta aperto e niente si perde */
+    ev.preventDefault();
+    $('tNome').focus();
+    return;
+  }
+  if (!ed) return;
   let x = ed.id ? findTask(ed.id) : null;
   if (!x) {
     x = { id: newId(), creata: new Date().toISOString() };
     tstore.tasks.push(x);
   }
+  /* cambiando giorno, o tornando nel serbatoio, la vecchia spunta non segue */
+  if (x.giorno && x.giorno !== ed.giorno) setCheck(x.giorno, x.id, false);
   x.nome = nome;
   x.desc = $('tDesc').value;
   x.rank = ed.rank;
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
+  riapriSessione(x);
   ed = null;
   touch(); render(); paintDrawer();
 });
@@ -1131,7 +1252,11 @@ dlgEd.addEventListener('cancel', () => { ed = null; });
 $('tElimina').addEventListener('click', () => {
   const b = $('tElimina');
   if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
-  if (ed && ed.id) tstore.tasks = tstore.tasks.filter(x => x.id !== ed.id);
+  if (ed && ed.id) {
+    const old = findTask(ed.id);
+    if (old && old.giorno) setCheck(old.giorno, old.id, false);   /* niente spunte orfane */
+    tstore.tasks = tstore.tasks.filter(x => x.id !== ed.id);
+  }
   ed = null;
   dlgEd.close();
   touch(); render(); paintDrawer();
@@ -1166,6 +1291,7 @@ $('pescaList').addEventListener('click', ev => {
   if (!x) return;
   x.giorno = viewKey;
   x.gws = pescaGws;
+  riapriSessione(x);
   dlgPesca.close();
   touch(); render(); paintDrawer();
 });
@@ -1270,8 +1396,15 @@ async function pullTasks() {
   } catch (e) {
     return;                       /* offline: si va avanti con la copia locale */
   }
+  /* token scaduto o revocato: lo si dice, ma leggere si puo' lo stesso, anonimi */
+  if (r.status === 401 && token) {
+    paintSync('token rifiutato', true);
+    try {
+      r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
+    } catch (e) { return; }
+  }
   if (r.status === 404) { if (!tstore.sha) paintSync('nessun file online ancora'); return; }
-  if (!r.ok) { if (r.status === 401) paintSync('token rifiutato', true); return; }
+  if (!r.ok) return;
 
   let j;
   try { j = await r.json(); } catch (e) { return; }
@@ -1309,6 +1442,9 @@ async function pushTasks(opts) {
   salvando = true; salvaErr = '';
   paintSalva();
 
+  /* la fotografia di cio' che parte: se nel frattempo si tocca qualcosa,
+     dirty deve restare acceso anche a salvataggio riuscito */
+  const sent = JSON.stringify(tstore.tasks);
   const n = tstore.tasks.filter(x => !x.giorno).length;
   const payload = {
     message: 'task: ' + n + ' in serbatoio, ' + (tstore.tasks.length - n) + ' schedulate',
@@ -1316,14 +1452,23 @@ async function pushTasks(opts) {
     branch:  TASK_BRANCH
   };
   if (tstore.sha) payload.sha = tstore.sha;
+  const body = JSON.stringify(payload);
+
+  const salvato = () => {
+    if (JSON.stringify(tstore.tasks) === sent) tstore.dirty = false;
+    saveLocal(); paintSalva();
+    paintSync('salvato alle ' + fmtTime.format(new Date()));
+  };
 
   let r;
   try {
     r = await fetch(TASK_API, {
       method: 'PUT',
       headers: Object.assign({ 'Content-Type': 'application/json' }, ghHeaders()),
-      body: JSON.stringify(payload),
-      keepalive: !!opts.keepalive
+      body: body,
+      /* keepalive rifiuta corpi oltre 64 KiB: sopra soglia meglio un tentativo
+         normale che un rifiuto certo spacciato per rete assente */
+      keepalive: !!opts.keepalive && body.length < 60000
     });
   } catch (e) {
     salvando = false; salvaErr = 'rete assente'; paintSalva(); return;
@@ -1337,16 +1482,17 @@ async function pushTasks(opts) {
   if ((r.status === 409 || r.status === 422) && !opts.retry) {
     try {
       const cur = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+      if (cur.status === 404) {
+        /* non e' un conflitto: manca il branch, o il file */
+        salvaErr = 'branch task assente'; paintSalva(); paintSync(salvaErr, true);
+        return;
+      }
       if (cur.ok) {
         const j = await cur.json();
         rememberSha(j.sha);
         let data = null;
         try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* si riprova comunque */ }
-        if (data && sameTasks(data.tasks, tstore.tasks)) {
-          tstore.dirty = false; saveLocal(); paintSalva();
-          paintSync('salvato alle ' + fmtTime.format(new Date()));
-          return;
-        }
+        if (data && sameTasks(data.tasks, tstore.tasks)) { salvato(); return; }
         return pushTasks(Object.assign({}, opts, { retry: true }));
       }
     } catch (e) { /* si cade nell'errore qui sotto */ }
@@ -1366,10 +1512,7 @@ async function pushTasks(opts) {
   let j = null;
   try { j = await r.json(); } catch (e) { /* salvato comunque */ }
   if (j && j.content && j.content.sha) rememberSha(j.content.sha);
-  tstore.dirty = false;
-  saveLocal();
-  paintSalva();
-  paintSync('salvato alle ' + fmtTime.format(new Date()));
+  salvato();
 }
 
 /* Il salvagente: si chiama chiudendo l'app. keepalive chiede al browser di
@@ -1415,7 +1558,7 @@ loadCalendar();
 loadBeat();                       /* subito, all'apertura */
 pullTasks();                      /* il serbatoio, subito */
 
-setInterval(paintFresh, 30000);   /* invecchia la riga fra un battito e l'altro */
+setInterval(() => { checkDay(); paintFresh(); }, 30000);   /* invecchia la riga, e vede la mezzanotte */
 setInterval(loadCalendar, 30000);
 setInterval(loadBeat, BEAT_MS);   /* solo mentre l'app resta aperta */
 
@@ -1424,7 +1567,7 @@ setInterval(loadBeat, BEAT_MS);   /* solo mentre l'app resta aperta */
    rimasto in sospeso, nei pochi istanti che il browser concede. */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) salvagente();
-  else { loadCalendar(); loadBeat(); pullTasks(); }
+  else { checkDay(); loadCalendar(); loadBeat(); pullTasks(); }
 });
 window.addEventListener('pagehide', salvagente);
 

@@ -29,6 +29,8 @@
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* hidden vince sempre, anche su chi ha un display proprio (.chips, .commento-lab) */
+[hidden]{display:none!important}
 
 body{
   background:var(--bg);
@@ -280,6 +282,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
   color:var(--muted);font-size:18px;line-height:1;letter-spacing:1px;
 }
 .more:active{background:var(--surface-2)}
+/* lasciata indietro: e` tornata nel serbatoio, qui resta solo il ricordo */
+.ev.mancata{opacity:.55}
+.ev.mancata .row{cursor:default}
+.ev.mancata .row:active{background:none}
 
 /* ---------- menu` laterale ---------- */
 
