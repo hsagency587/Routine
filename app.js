@@ -542,7 +542,17 @@ function ghostNode(x, id) {
 let renderedDay = null;           /* il giorno "oggi" dell'ultimo disegno */
 
 function render() {
-  renderedDay = dayKey(today());
+  /* La mezzanotte si scopre qui, da chiunque ridisegni: se si stava guardando
+     oggi si passa al nuovo oggi. E' sicuro anche sotto un dialogo aperto: il
+     pop-up di chiusura ricorda il suo giorno, l'editor e la pesca guardano
+     l'oggi vero al momento della conferma. */
+  const t = dayKey(today());
+  if (renderedDay && t !== renderedDay && viewKey === renderedDay) {
+    view = today();
+    viewKey = t;
+    riaperta = null;
+  }
+  renderedDay = t;
   tidyTasks();                    /* mezzanotte: chi torna nel serbatoio, chi va in archivio */
   const c = dayChecks(viewKey);
   const g = childrenOf(viewKey);
@@ -897,18 +907,11 @@ function goTo(d) {
   render();
 }
 
-/* E' scattata la mezzanotte con l'app aperta, o ripresa dallo sfondo? Se si
-   stava guardando oggi si passa al nuovo oggi; altrimenti basta ridisegnare,
-   che aggiorna etichette, + e regola di mezzanotte. Un confronto di stringhe,
-   nessuna rete. */
+/* E' scattata la mezzanotte con l'app aperta, o ripresa dallo sfondo? Basta
+   ridisegnare: e' render() a spostare la vista sul nuovo oggi e ad applicare
+   la regola di mezzanotte. Un confronto di stringhe, nessuna rete. */
 function checkDay() {
-  /* con un dialogo aperto si aspetta il tick dopo: cambiare giorno sotto un
-     pop-up manderebbe la conferma, o la task pescata, sul giorno sbagliato */
-  if (document.querySelector('dialog[open]')) return;
-  const t = dayKey(today());
-  if (t === renderedDay) return;
-  if (viewKey === renderedDay) goTo(today());
-  else render();
+  if (dayKey(today()) !== renderedDay) render();
 }
 
 $('prev').addEventListener('click', () => goTo(shift(view, -1)));
@@ -1347,6 +1350,7 @@ $('impostazioniForm').addEventListener('submit', () => {
   salvaErr = '';
   beatAuth = true;                /* col token nuovo il battito riprova la quota personale */
   beatQuota = 0;
+  loadBeat();                     /* subito, senza aspettare il tick */
   paintSalva();
   if (token) provaToken();
   else paintSync('nessun token');
@@ -1434,7 +1438,7 @@ async function pullTasks() {
     } catch (e) { return; }
   }
   const fine = msg => paintSync(tokenKo ? 'token rifiutato' : msg, tokenKo);
-  if (r.status === 404) { if (!tstore.sha) paintSync('nessun file online ancora'); return; }
+  if (r.status === 404) { if (!tstore.sha) fine('nessun file online ancora'); return; }
   if (!r.ok) return;
 
   let j;
