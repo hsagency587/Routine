@@ -8,3 +8,7 @@ _site/
 
 # i mesi dello storico contengono i commenti delle giornate: restano in locale
 storico/storico-*.md
+
+# appunti che restano sul PC: promemoria di pubblicazione, diagnosi, cose da
+# ricordare. Non partono col repository. Per mandarne uno online, rinominalo.
+*.locale.md
