@@ -34,7 +34,11 @@
     </svg>
   </div>
 
-  <p class="fresh" id="fresh">Caricamento…</p>
+  <div class="bar">
+    <p class="fresh" id="fresh">Caricamento…</p>
+    <button type="button" class="salva" id="salva" hidden>Salva</button>
+    <button type="button" class="menu" id="menuBtn" aria-label="Apri il Menù Task" aria-controls="drawer">☰</button>
+  </div>
 
   <div class="daybar">
     <button type="button" class="nav" id="prev" aria-label="Giorno precedente">&lsaquo;</button>
@@ -67,6 +71,82 @@
     <button type="button" class="scarica" id="scarica">Scarica</button>
   </div>
 </footer>
+
+<!-- Il Menù Task: il serbatoio delle cose da fare che non vanno nel calendario. -->
+<div class="velo" id="velo" hidden></div>
+<aside class="drawer" id="drawer" aria-label="Menù Task">
+  <div class="drawer-top">
+    <h2 class="drawer-tit">Menù Task</h2>
+    <button type="button" class="plus" id="nuova" aria-label="Nuova task">+</button>
+    <button type="button" class="chiudi" id="chiudiMenu" aria-label="Chiudi il menù">×</button>
+  </div>
+  <label class="switch">
+    <input type="checkbox" id="tutte">
+    <span>Mostra anche le schedulate</span>
+  </label>
+  <div class="drawer-list" id="drawerList"></div>
+  <div class="drawer-foot">
+    <button type="button" class="link" id="impostazioniBtn">Impostazioni</button>
+    <span class="sync" id="sync"></span>
+  </div>
+</aside>
+
+<!-- Un editor solo, per creare e per modificare. -->
+<dialog class="chiusura" id="editor" aria-labelledby="editorTit">
+  <form method="dialog" class="chiusura-box" id="editorForm">
+    <h2 class="chiusura-tit" id="editorTit">Task</h2>
+
+    <label class="commento-lab" for="tNome">Nome</label>
+    <input class="campo" id="tNome" type="text" required maxlength="120" autocomplete="off">
+
+    <label class="commento-lab" for="tDesc">Descrizione</label>
+    <textarea class="commento" id="tDesc" rows="3"></textarea>
+
+    <p class="commento-lab">Rank</p>
+    <div class="chips" id="tRank"></div>
+
+    <p class="commento-lab">Giorno</p>
+    <div class="chips" id="tGiorno"></div>
+
+    <p class="commento-lab" id="tGwsLab">Sessione</p>
+    <div class="chips" id="tGws"></div>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn btn-del" id="tElimina">Elimina</button>
+      <button type="button" class="btn" id="tAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Il + della sessione: una task nuova, o una pescata dal serbatoio. -->
+<dialog class="chiusura" id="pesca" aria-labelledby="pescaTit">
+  <div class="chiusura-box">
+    <h2 class="chiusura-tit" id="pescaTit">Aggiungi alla sessione</h2>
+    <p class="chiusura-day" id="pescaDay"></p>
+    <button type="button" class="btn btn-ok btn-largo" id="pescaNuova">Nuova task</button>
+    <div class="pesca-list" id="pescaList"></div>
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="pescaAnnulla">Annulla</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog class="chiusura" id="impostazioni" aria-labelledby="impostazioniTit">
+  <form method="dialog" class="chiusura-box" id="impostazioniForm">
+    <h2 class="chiusura-tit" id="impostazioniTit">Impostazioni</h2>
+
+    <label class="commento-lab" for="tokenInput">Token GitHub</label>
+    <input class="campo" id="tokenInput" type="password" autocomplete="off" placeholder="github_pat_…">
+    <p class="nota">Fine-grained, limitato a questo repository, permesso <b>Contents</b> in lettura e scrittura. Serve per salvare le task; leggerle funziona anche senza.</p>
+    <p class="nota" id="tokenStato"></p>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="tokenAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Salva token</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog class="chiusura" id="chiusura" aria-labelledby="chiusuraTit">
   <form method="dialog" class="chiusura-box" id="chiusuraForm">

@@ -9,6 +9,17 @@ const CHECKS_KEY  = 'gwork-checks-v1';
 const RECORDS_KEY = 'gwork-records-v1';
 const DIARIO_KEY  = 'gwork-diario-v1';
 const LEGACY_KEY  = 'hs-personal-routine-v1';
+
+/* Il serbatoio delle task. La copia che comanda sta nel telefono; Salva la
+   manda su GitHub in un commit solo, sul branch "task", via API con il token
+   incollato in Impostazioni. Leggere funziona anche senza token: il repo e'
+   pubblico. */
+const TASKS_KEY    = 'gwork-tasks-v1';       /* { tasks, sha, dirty, known } */
+const TOKEN_KEY    = 'gwork-token-v1';
+const ARCHIVIO_KEY = 'gwork-taskfatte-v1';   /* task fatte uscite dalla finestra */
+const TASK_BRANCH  = 'task';
+const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/tasks.json';
+const RANKS        = ['A', 'B', 'C'];
 /* Il calendario sta sul branch "dati" e non dentro il sito: si aggiorna con un
    commit, non ripubblicando Pages. La cache di raw dura cinque minuti, che e'
    la vera freschezza del file. */
@@ -219,6 +230,24 @@ function groupEvents(k) {
   return out;
 }
 
+/* Le task schedulate in un giorno, sessione per sessione, in ordine di rank. */
+function dayTasks(k) {
+  const out = [[], [], [], [], [], []];
+  for (const x of tstore.tasks) {
+    if (x.giorno === k && x.gws != null && out[x.gws]) out[x.gws].push(x);
+  }
+  for (const l of out) l.sort(byRank);
+  return out;
+}
+
+/* Le figlie di una sessione: gli eventi nell'ordine del calendario, poi le
+   task. Una task e' un evento senza orario e senza sirena: ha un id, si spunta,
+   conta uno. Tutto il conteggio passa di qui, cosi' non puo' divergere. */
+function childrenOf(k) {
+  const g = groupEvents(k), t = dayTasks(k);
+  return g.map((evs, i) => evs.concat(t[i].map(x => ({ id: x.id, task: x }))));
+}
+
 /* ---------------------------------------------------------- conteggio --- */
 
 /* Le figlie di una tappa: sottotappe, alternative ed eventi del calendario. */
@@ -240,7 +269,7 @@ function tappaState(t, c, evs) {
 
 function tally(k) {
   const c = dayChecks(k);
-  const g = groupEvents(k);
+  const g = childrenOf(k);
   let total = 0, done = 0;
   for (const t of ROUTINE) {
     const st = tappaState(t, c, t.gws != null ? g[t.gws] : null);
@@ -295,20 +324,32 @@ const fmtLong = new Intl.DateTimeFormat('it-IT',
 
 /* Un giorno entra nello storico se ha lasciato una traccia: almeno una spunta,
    oppure una chiusura. I giorni vuoti non si scrivono. */
-const hasTrace = k => !!((records[k] && records[k].fatte > 0) || diario[k]);
+const hasTrace = k => !!((records[k] && records[k].fatte > 0) || diario[k]
+                         || (archivio[k] && archivio[k].length));
 
 function storicoDays(m) {
   const set = {};
-  for (const k of Object.keys(records)) if (monthKey(k) === m && hasTrace(k)) set[k] = 1;
-  for (const k of Object.keys(diario))  if (monthKey(k) === m) set[k] = 1;
+  for (const k of Object.keys(records))  if (monthKey(k) === m && hasTrace(k)) set[k] = 1;
+  for (const k of Object.keys(diario))   if (monthKey(k) === m) set[k] = 1;
+  for (const k of Object.keys(archivio)) if (monthKey(k) === m) set[k] = 1;
   return Object.keys(set).sort();
 }
 
 function storicoMonths() {
   const set = {};
-  for (const k of Object.keys(records)) if (hasTrace(k)) set[monthKey(k)] = 1;
-  for (const k of Object.keys(diario))  set[monthKey(k)] = 1;
+  for (const k of Object.keys(records))  if (hasTrace(k)) set[monthKey(k)] = 1;
+  for (const k of Object.keys(diario))   set[monthKey(k)] = 1;
+  for (const k of Object.keys(archivio)) set[monthKey(k)] = 1;
   return Object.keys(set).sort().reverse();   /* il mese in corso per primo */
+}
+
+/* Le task fatte in un giorno: quelle gia' in archivio piu' quelle ancora nel
+   file, se il giorno e' in finestra e la spunta c'e'. */
+function doneTasks(k) {
+  const c = dayChecks(k);
+  const vive = tstore.tasks.filter(x => x.giorno === k && c[x.id])
+                           .map(x => ({ nome: x.nome, rank: x.rank, gws: x.gws }));
+  return (archivio[k] || []).concat(vive).sort(byRank);
 }
 
 /* Un mese, un file. I giorni uno sotto l'altro invece che in tabella: cosi' si
@@ -342,6 +383,11 @@ function monthMarkdown(m) {
 
     const c = d && String(d.commento || '').trim();
     if (c) out.push('', c);
+
+    const fatte = doneTasks(k);
+    if (fatte.length) {
+      out.push('', 'Task fatte: ' + fatte.map(x => '[' + x.rank + '] ' + x.nome).join(' · '));
+    }
   }
 
   return out.join('\n') + '\n';
@@ -418,9 +464,51 @@ function eventNode(e, on) {
   return li;
 }
 
+/* Una task dentro la sessione: come un evento, con la lettera del rank al
+   posto dell'orario e i tre puntini che aprono l'editor. Tutta la riga spunta. */
+function taskNode(x, on) {
+  const li = el('li', 'ev task');
+  const bar = el('div', 'evrow');
+
+  const l = el('label', 'row' + (on ? ' on' : ''));
+  const i = el('input');
+  i.type = 'checkbox';
+  i.checked = on;
+  i.dataset.key = x.id;
+  l.appendChild(i);
+  l.appendChild(el('span', 'rank r' + x.rank, x.rank));
+  l.appendChild(el('span', 'ttl', x.nome));
+  bar.appendChild(l);
+
+  if (x.desc) {
+    const b = el('button', 'toggle', '▼');
+    b.type = 'button';
+    b.dataset.role = 'desc';
+    b.setAttribute('aria-expanded', 'false');
+    b.setAttribute('aria-label', 'Mostra la descrizione');
+    bar.appendChild(b);
+  }
+
+  const m = el('button', 'more', '⋯');
+  m.type = 'button';
+  m.dataset.task = x.id;
+  m.setAttribute('aria-label', 'Modifica la task');
+  bar.appendChild(m);
+
+  li.appendChild(bar);
+
+  if (x.desc) {
+    const p = el('p', 'desc', x.desc);
+    p.hidden = true;
+    li.appendChild(p);
+  }
+  return li;
+}
+
 function render() {
+  tidyTasks();                    /* mezzanotte: chi torna nel serbatoio, chi va in archivio */
   const c = dayChecks(viewKey);
-  const g = groupEvents(viewKey);
+  const g = childrenOf(viewKey);
   const covered = isCovered(viewKey);
   const list = $('list');
 
@@ -431,7 +519,21 @@ function render() {
     const evs = t.gws != null ? g[t.gws] : null;
     const li = el('li', 'tappa');
 
-    li.appendChild(checkRow(t.id, t.t, 'row-t', !!c[t.id]));
+    if (t.gws != null) {
+      /* il + sta fuori dalla label: toccarlo non deve spuntare la sessione */
+      const head = el('div', 'head');
+      head.appendChild(checkRow(t.id, t.t, 'row-t', !!c[t.id]));
+      if (canSchedule(viewKey)) {
+        const b = el('button', 'plus', '+');
+        b.type = 'button';
+        b.dataset.gws = t.gws;
+        b.setAttribute('aria-label', 'Aggiungi una task alla sessione');
+        head.appendChild(b);
+      }
+      li.appendChild(head);
+    } else {
+      li.appendChild(checkRow(t.id, t.t, 'row-t', !!c[t.id]));
+    }
 
     if (t.choice) {
       const box = el('div', 'choice');
@@ -450,12 +552,14 @@ function render() {
     }
 
     if (t.gws != null) {
-      if (!covered) {
-        /* prima del primo caricamento non si annuncia ancora niente */
-        if (loaded) li.appendChild(el('p', 'nocov', 'Eventi non coperti per questa data'));
-      } else if (evs.length) {
+      /* prima del primo caricamento non si annuncia ancora niente; le task
+         invece si vedono comunque, il calendario non c'entra */
+      if (!covered && loaded) li.appendChild(el('p', 'nocov', 'Eventi non coperti per questa data'));
+      if (evs.length) {
         const ul = el('ul', 'evs');
-        for (const e of evs) ul.appendChild(eventNode(e, !!c[e.id]));
+        for (const e of evs) {
+          ul.appendChild(e.task ? taskNode(e.task, !!c[e.id]) : eventNode(e, !!c[e.id]));
+        }
         li.appendChild(ul);
       }
     }
@@ -690,6 +794,12 @@ $('list').addEventListener('change', ev => {
 });
 
 $('list').addEventListener('click', ev => {
+  const more = ev.target.closest('button.more[data-task]');
+  if (more) { openEditor(more.dataset.task); return; }
+
+  const plus = ev.target.closest('button.plus[data-gws]');
+  if (plus) { openPesca(+plus.dataset.gws); return; }
+
   const b = ev.target.closest('button[data-role="desc"]');
   if (!b) return;
   const open = b.getAttribute('aria-expanded') === 'true';
@@ -778,6 +888,500 @@ dlg.addEventListener('close', () => {
   syncDerived();
 });
 
+/* ---------------------------------------------------------------- task --- */
+
+/* Il serbatoio. La copia che comanda e' quella nel telefono: ogni tocco e'
+   istantaneo e resta qui anche se non salvi. Le spunte sulle task stanno con
+   le altre spunte, in locale: nel file una task e' solo cosa, quanto conta e
+   quando. */
+let tstore = readStore(TASKS_KEY);
+if (!Array.isArray(tstore.tasks)) tstore = { tasks: [], sha: null, dirty: false, known: [] };
+if (!Array.isArray(tstore.known)) tstore.known = [];
+
+let archivio = readStore(ARCHIVIO_KEY);
+
+let token = '';
+try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente token */ }
+
+const newId    = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const findTask = id => tstore.tasks.find(x => x.id === id) || null;
+const byRank   = (a, b) => a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : a.nome.localeCompare(b.nome);
+
+/* Si schedula su oggi, domani e dopodomani. Ieri no. */
+const canSchedule = k => isEditable(k) && k >= dayKey(today());
+
+/* Un file arrivato da fuori si prende con le pinze: solo campi noti, nella
+   forma attesa. Quello che non torna si ripulisce, non si scarta. */
+function validTask(x) {
+  if (!x || typeof x !== 'object' || typeof x.id !== 'string' || typeof x.nome !== 'string') return null;
+  const gws = Number.isInteger(x.gws) && x.gws >= 0 && x.gws <= 5 ? x.gws : null;
+  const giorno = typeof x.giorno === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.giorno) && gws != null ? x.giorno : null;
+  return {
+    id:     x.id,
+    nome:   x.nome,
+    desc:   typeof x.desc === 'string' ? x.desc : '',
+    rank:   RANKS.indexOf(x.rank) >= 0 ? x.rank : 'B',
+    giorno: giorno,
+    gws:    giorno ? gws : null,
+    creata: typeof x.creata === 'string' ? x.creata : ''
+  };
+}
+
+const sameTasks = (a, b) => JSON.stringify((a || []).map(validTask)) === JSON.stringify((b || []).map(validTask));
+
+function saveLocal() { writeStore(TASKS_KEY, tstore); }
+
+/* Ogni modifica passa di qui: si segna, e compare Salva. */
+function touch() {
+  tstore.dirty = true;
+  saveLocal();
+  paintSalva();
+  paintSync();
+}
+
+/* A mezzanotte le task lasciate indietro tornano nel serbatoio: il giorno
+   passato resta contato com'era, non fatta. Quelle fatte restano nel loro
+   giorno finche' e' in finestra, poi passano in archivio, da dove le legge lo
+   storico del mese. */
+function tidyTasks() {
+  const t0 = dayKey(today());
+  const win = windowKeys();
+  let changed = false;
+
+  tstore.tasks = tstore.tasks.filter(x => {
+    if (!x.giorno) return true;
+    if (dayChecks(x.giorno)[x.id]) {
+      if (win.indexOf(x.giorno) >= 0) return true;
+      if (!archivio[x.giorno]) archivio[x.giorno] = [];
+      archivio[x.giorno].push({ nome: x.nome, rank: x.rank, gws: x.gws });
+      changed = true;
+      return false;
+    }
+    if (x.giorno < t0) { x.giorno = null; x.gws = null; changed = true; }
+    return true;
+  });
+
+  if (changed) {
+    writeStore(ARCHIVIO_KEY, archivio);
+    touch();
+  }
+}
+
+/* ------------------------------------------------------------- menu' ---- */
+
+let tutte = false;               /* l'interruttore "mostra anche le schedulate" */
+
+function openMenu(on) {
+  $('drawer').classList.toggle('open', on);
+  $('velo').hidden = !on;
+  document.body.classList.toggle('menu-open', on);
+  $('menuBtn').setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on) paintDrawer();
+}
+
+function whenText(x) {
+  const t0 = today();
+  const lab = x.giorno === dayKey(t0)            ? 'oggi'
+            : x.giorno === dayKey(shift(t0, 1))  ? 'domani'
+            : x.giorno === dayKey(shift(t0, 2))  ? 'dopodomani'
+            : x.giorno === dayKey(shift(t0, -1)) ? 'ieri'
+            : fmtDate.format(new Date(x.giorno + 'T00:00:00'));
+  return lab + ' · GWS ' + (x.gws + 1);
+}
+
+/* Una riga del menu' (o dell'elenco da cui pescare, senza i tre puntini). */
+function trowNode(x, pick) {
+  const li = el('li', 'trow' + (x.giorno ? ' sched' : ''));
+  li.dataset.task = x.id;
+  li.appendChild(el('span', 'rank r' + x.rank, x.rank));
+  li.appendChild(el('span', 'tname', x.nome));
+  if (x.giorno) li.appendChild(el('span', 'twhen', whenText(x)));
+  if (!pick) {
+    const b = el('button', 'more', '⋯');
+    b.type = 'button';
+    b.dataset.task = x.id;
+    b.setAttribute('aria-label', 'Modifica la task');
+    li.appendChild(b);
+  }
+  return li;
+}
+
+/* Il menu': A, B, C. Di base solo il serbatoio; con l'interruttore anche le
+   schedulate, col bordino giallo. */
+function paintDrawer() {
+  const box = $('drawerList');
+  box.textContent = '';
+  let n = 0;
+  for (const r of RANKS) {
+    const list = tstore.tasks.filter(x => x.rank === r && (tutte || !x.giorno)).sort(byRank);
+    if (!list.length) continue;
+    n += list.length;
+    box.appendChild(el('p', 'grp', 'RANK ' + r));
+    const ul = el('ul', 'trows');
+    for (const x of list) ul.appendChild(trowNode(x, false));
+    box.appendChild(ul);
+  }
+  if (!n) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+  paintSync();
+}
+
+$('menuBtn').addEventListener('click', () => openMenu(true));
+$('chiudiMenu').addEventListener('click', () => openMenu(false));
+$('velo').addEventListener('click', () => openMenu(false));
+$('tutte').addEventListener('change', e => { tutte = e.target.checked; paintDrawer(); });
+$('nuova').addEventListener('click', () => openEditor(null));
+$('impostazioniBtn').addEventListener('click', openImpostazioni);
+
+/* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
+$('drawerList').addEventListener('click', ev => {
+  const li = ev.target.closest('.trow[data-task]');
+  if (li) openEditor(li.dataset.task);
+});
+
+/* ------------------------------------------------------------ editor ---- */
+
+const dlgEd = $('editor');
+let ed = null;                   /* { id, rank, giorno, gws }: lo stato dell'editor aperto */
+
+/* I giorni su cui si puo' mettere una task. Se la task sta gia' su un giorno
+   che non e' piu' fra questi, quel giorno si mostra com'e': si puo' lasciare
+   o togliere, non rimettere. */
+function dayChoices(current) {
+  const t0 = today();
+  const out = [{ k: '', lab: 'Non schedulata' }];
+  [['Oggi', 0], ['Domani', 1], ['Dopodomani', 2]].forEach(p => out.push({ k: dayKey(shift(t0, p[1])), lab: p[0] }));
+  if (current && !out.some(o => o.k === current)) {
+    out.push({ k: current, lab: fmtDate.format(new Date(current + 'T00:00:00')) });
+  }
+  return out;
+}
+
+function chips(box, items, sel) {
+  box.textContent = '';
+  for (const it of items) {
+    const b = el('button', 'chip' + (it.k === sel ? ' sel' : ''), it.lab);
+    b.type = 'button';
+    b.dataset.v = it.k;
+    box.appendChild(b);
+  }
+}
+
+function paintEditor() {
+  chips($('tRank'), RANKS.map(r => ({ k: r, lab: r })), ed.rank);
+  chips($('tGiorno'), dayChoices(ed.giorno), ed.giorno || '');
+  const sched = !!ed.giorno;
+  $('tGwsLab').hidden = !sched;
+  $('tGws').hidden = !sched;
+  if (sched) chips($('tGws'), [0, 1, 2, 3, 4, 5].map(i => ({ k: String(i), lab: String(i + 1) })), String(ed.gws));
+}
+
+function openEditor(id, preset) {
+  const x = id ? findTask(id) : null;
+  ed = x ? { id: x.id, rank: x.rank, giorno: x.giorno, gws: x.gws }
+         : { id: null, rank: 'B',
+             giorno: (preset && preset.giorno) || null,
+             gws: preset && preset.gws != null ? preset.gws : null };
+  if (ed.giorno && ed.gws == null) ed.gws = 0;
+
+  $('editorTit').textContent = x ? 'Modifica task' : 'Nuova task';
+  $('tNome').value = x ? x.nome : '';
+  $('tDesc').value = x ? x.desc : '';
+  $('tElimina').hidden = !x;
+  $('tElimina').textContent = 'Elimina';
+  paintEditor();
+  dlgEd.showModal();
+  if (!x) $('tNome').focus();
+}
+
+$('editorForm').addEventListener('click', ev => {
+  const b = ev.target.closest('button.chip');
+  if (!b || !ed) return;
+  const v = b.dataset.v;
+  const box = b.parentNode.id;
+  if (box === 'tRank') ed.rank = v;
+  else if (box === 'tGws') ed.gws = +v;
+  else if (box === 'tGiorno') {
+    ed.giorno = v || null;
+    ed.gws = ed.giorno ? (ed.gws == null ? 0 : ed.gws) : null;
+  }
+  paintEditor();
+});
+
+$('editorForm').addEventListener('submit', () => {
+  const nome = $('tNome').value.trim();
+  if (!nome || !ed) return;
+  let x = ed.id ? findTask(ed.id) : null;
+  if (!x) {
+    x = { id: newId(), creata: new Date().toISOString() };
+    tstore.tasks.push(x);
+  }
+  x.nome = nome;
+  x.desc = $('tDesc').value;
+  x.rank = ed.rank;
+  x.giorno = ed.giorno;
+  x.gws = ed.giorno ? ed.gws : null;
+  ed = null;
+  touch(); render(); paintDrawer();
+});
+
+$('tAnnulla').addEventListener('click', () => { ed = null; dlgEd.close(); });
+dlgEd.addEventListener('cancel', () => { ed = null; });
+
+/* due tocchi per eliminare: il primo chiede, il secondo fa */
+$('tElimina').addEventListener('click', () => {
+  const b = $('tElimina');
+  if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
+  if (ed && ed.id) tstore.tasks = tstore.tasks.filter(x => x.id !== ed.id);
+  ed = null;
+  dlgEd.close();
+  touch(); render(); paintDrawer();
+});
+
+/* ------------------------------------------------------------- pesca ---- */
+
+const dlgPesca = $('pesca');
+let pescaGws = null;
+
+/* Il + della sessione: una task nuova gia' li' dentro, oppure una pescata dal
+   serbatoio con un tocco. */
+function openPesca(g) {
+  pescaGws = g;
+  $('pescaDay').textContent = 'GWS ' + (g + 1) + ' · ' + fmtLong.format(view);
+  const box = $('pescaList');
+  box.textContent = '';
+  const list = tstore.tasks.filter(x => !x.giorno).sort(byRank);
+  if (!list.length) {
+    box.appendChild(el('p', 'vuoto', 'Serbatoio vuoto'));
+  } else {
+    const ul = el('ul', 'trows');
+    for (const x of list) ul.appendChild(trowNode(x, true));
+    box.appendChild(ul);
+  }
+  dlgPesca.showModal();
+}
+
+$('pescaList').addEventListener('click', ev => {
+  const li = ev.target.closest('.trow[data-task]');
+  const x = li && findTask(li.dataset.task);
+  if (!x) return;
+  x.giorno = viewKey;
+  x.gws = pescaGws;
+  dlgPesca.close();
+  touch(); render(); paintDrawer();
+});
+$('pescaNuova').addEventListener('click', () => {
+  dlgPesca.close();
+  openEditor(null, { giorno: viewKey, gws: pescaGws });
+});
+$('pescaAnnulla').addEventListener('click', () => dlgPesca.close());
+
+/* ------------------------------------------------------ impostazioni ---- */
+
+const dlgImp = $('impostazioni');
+
+function openImpostazioni() {
+  $('tokenInput').value = token;
+  const s = $('tokenStato');
+  s.className = 'nota';
+  s.textContent = token ? 'Token presente.' : 'Nessun token: le task si leggono ma non si salvano.';
+  dlgImp.showModal();
+}
+
+$('impostazioniForm').addEventListener('submit', () => {
+  token = $('tokenInput').value.trim();
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch (e) { /* resta solo in memoria */ }
+  salvaErr = '';
+  paintSalva();
+  if (token) provaToken();
+  else paintSync('nessun token');
+});
+$('tokenAnnulla').addEventListener('click', () => dlgImp.close());
+
+/* Una lettura autenticata: se passa, il token e' buono. Scrivere lo si
+   scopre al primo Salva, e se manca il permesso lo dice lui. */
+async function provaToken() {
+  try {
+    const r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+    if (r.status === 401) paintSync('token rifiutato', true);
+    else if (r.ok || r.status === 404) paintSync('token accettato');
+    else paintSync('token: errore ' + r.status, true);
+  } catch (e) {
+    paintSync('rete assente', true);
+  }
+}
+
+/* -------------------------------------------------------------- sync ----- */
+
+let salvando = false, salvaErr = '';
+let syncMsg = '', syncErr = false;
+
+function ghHeaders() {
+  const h = { Accept: 'application/vnd.github+json' };
+  if (token) h.Authorization = 'Bearer ' + token;
+  return h;
+}
+
+/* base64 di testo UTF-8, in entrambe le direzioni: btoa da solo si rompe
+   sugli accenti. */
+function b64enc(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64dec(b) {
+  const bin = atob(String(b).replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+/* Le ultime sha viste: una risposta dell'API rimasta in cache non deve
+   sovrascrivere il telefono con una versione vecchia. */
+function rememberSha(sha) {
+  tstore.sha = sha;
+  tstore.known = [sha].concat(tstore.known.filter(x => x !== sha)).slice(0, 4);
+}
+
+function paintSalva() {
+  const b = $('salva');
+  b.hidden = !tstore.dirty;
+  b.disabled = salvando;
+  b.classList.toggle('err', !!salvaErr);
+  b.textContent = salvando ? 'Salvo…' : salvaErr ? 'Salva — ' + salvaErr : 'Salva';
+}
+
+function paintSync(msg, err) {
+  if (msg !== undefined) { syncMsg = msg; syncErr = !!err; }
+  const s = $('sync');
+  s.textContent = syncErr ? syncMsg : tstore.dirty ? 'modifiche non salvate' : syncMsg;
+  s.classList.toggle('err', syncErr);
+}
+
+/* Il file dal branch task. Senza token si legge lo stesso. Se il telefono ha
+   modifiche non salvate, vince il telefono: online si guarda soltanto. */
+async function pullTasks() {
+  let r;
+  try {
+    r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+  } catch (e) {
+    return;                       /* offline: si va avanti con la copia locale */
+  }
+  if (r.status === 404) { if (!tstore.sha) paintSync('nessun file online ancora'); return; }
+  if (!r.ok) { if (r.status === 401) paintSync('token rifiutato', true); return; }
+
+  let j;
+  try { j = await r.json(); } catch (e) { return; }
+  if (!j || !j.sha || tstore.known.indexOf(j.sha) >= 0) return;   /* gia' vista */
+
+  let data;
+  try { data = JSON.parse(b64dec(j.content)); } catch (e) { paintSync('file online illeggibile', true); return; }
+  const remote = Array.isArray(data.tasks) ? data.tasks.map(validTask).filter(Boolean) : [];
+
+  if (tstore.dirty) {
+    /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
+    if (sameTasks(remote, tstore.tasks)) {
+      rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
+      paintSync('allineato');
+    } else {
+      paintSync('online c\'e` una versione diversa: salvando la sovrascrivi');
+    }
+    return;
+  }
+
+  tstore.tasks = remote;
+  rememberSha(j.sha);
+  tstore.dirty = false;
+  saveLocal();
+  tidyTasks(); render(); paintDrawer(); paintSalva();
+  paintSync('allineato alle ' + fmtTime.format(new Date()));
+}
+
+/* Un commit solo, con tutto dentro. */
+async function pushTasks(opts) {
+  opts = opts || {};
+  if (!tstore.dirty || salvando) return;
+  if (!token) { salvaErr = 'manca il token'; paintSalva(); paintSync('manca il token', true); return; }
+
+  salvando = true; salvaErr = '';
+  paintSalva();
+
+  const n = tstore.tasks.filter(x => !x.giorno).length;
+  const payload = {
+    message: 'task: ' + n + ' in serbatoio, ' + (tstore.tasks.length - n) + ' schedulate',
+    content: b64enc(JSON.stringify({ tasks: tstore.tasks }, null, 2) + '\n'),
+    branch:  TASK_BRANCH
+  };
+  if (tstore.sha) payload.sha = tstore.sha;
+
+  let r;
+  try {
+    r = await fetch(TASK_API, {
+      method: 'PUT',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, ghHeaders()),
+      body: JSON.stringify(payload),
+      keepalive: !!opts.keepalive
+    });
+  } catch (e) {
+    salvando = false; salvaErr = 'rete assente'; paintSalva(); return;
+  }
+  salvando = false;
+
+  /* sha vecchia: online e' cambiato qualcosa nel frattempo — di solito e' il
+     salvagente di una chiusura precedente, arrivato senza che lo sapessimo.
+     Si rilegge, e se e' la nostra stessa versione si e' gia' a posto;
+     altrimenti si riprova una volta con la sha giusta. Vince il telefono. */
+  if ((r.status === 409 || r.status === 422) && !opts.retry) {
+    try {
+      const cur = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+      if (cur.ok) {
+        const j = await cur.json();
+        rememberSha(j.sha);
+        let data = null;
+        try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* si riprova comunque */ }
+        if (data && sameTasks(data.tasks, tstore.tasks)) {
+          tstore.dirty = false; saveLocal(); paintSalva();
+          paintSync('salvato alle ' + fmtTime.format(new Date()));
+          return;
+        }
+        return pushTasks(Object.assign({}, opts, { retry: true }));
+      }
+    } catch (e) { /* si cade nell'errore qui sotto */ }
+    salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
+    return;
+  }
+
+  if (!r.ok) {
+    salvaErr = r.status === 401 ? 'token rifiutato'
+             : r.status === 403 ? 'token senza permesso'
+             : r.status === 404 ? 'branch task assente'
+             :                    'errore ' + r.status;
+    paintSalva(); paintSync(salvaErr, true);
+    return;
+  }
+
+  let j = null;
+  try { j = await r.json(); } catch (e) { /* salvato comunque */ }
+  if (j && j.content && j.content.sha) rememberSha(j.content.sha);
+  tstore.dirty = false;
+  saveLocal();
+  paintSalva();
+  paintSync('salvato alle ' + fmtTime.format(new Date()));
+}
+
+/* Il salvagente: si chiama chiudendo l'app. keepalive chiede al browser di
+   finire la richiesta anche se la pagina muore. Di solito basta, non sempre:
+   per questo la copia locale resta comunque, e Salva ricompare alla riapertura. */
+function salvagente() {
+  if (!tstore.dirty || !token || salvando) return;
+  pushTasks({ keepalive: true });
+}
+
+$('salva').addEventListener('click', () => pushTasks());
+
 /* ---------------------------------------------------------- avviamento --- */
 
 try {
@@ -805,17 +1409,24 @@ async function loadCalendar() {
 }
 
 render();
+paintDrawer();
+paintSalva();
 loadCalendar();
 loadBeat();                       /* subito, all'apertura */
+pullTasks();                      /* il serbatoio, subito */
 
 setInterval(paintFresh, 30000);   /* invecchia la riga fra un battito e l'altro */
 setInterval(loadCalendar, 30000);
 setInterval(loadBeat, BEAT_MS);   /* solo mentre l'app resta aperta */
 
-/* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve. */
+/* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve.
+   Chiudendola parte il salvagente: un tentativo di salvare quello che e'
+   rimasto in sospeso, nei pochi istanti che il browser concede. */
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) { loadCalendar(); loadBeat(); }
+  if (document.hidden) salvagente();
+  else { loadCalendar(); loadBeat(); pullTasks(); }
 });
+window.addEventListener('pagehide', salvagente);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

@@ -12,3 +12,6 @@ storico/storico-*.md
 # appunti che restano sul PC: promemoria di pubblicazione, diagnosi, cose da
 # ricordare. Non partono col repository. Per mandarne uno online, rinominalo.
 *.locale.md
+
+# tasks.json vive sul branch "task", scritto dall'app: su main non c'entra
+tasks.json
