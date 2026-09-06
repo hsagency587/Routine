@@ -1,0 +1,50 @@
+name: Pubblica il sito
+
+# Solo il guscio dell'app: HTML, JS, CSS, icone. Il calendario non passa di
+# qui: sta sul branch "dati" e l'app lo legge da raw.githubusercontent. Cosi'
+# Pages si ripubblica quando cambia il codice, non ogni due minuti.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - name: Prepara _site
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            --exclude='storico' \
+            --exclude='_site' \
+            ./ _site/
+          echo "Contenuto di _site:"
+          ls -la _site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

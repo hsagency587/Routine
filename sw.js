@@ -4,6 +4,12 @@
 
 const CACHE = 'gwork-v1';
 
+/* Il calendario non e` piu` un file del sito: sta su un altro dominio. Senza
+   questa eccezione il service worker lo lascerebbe passare senza guardarlo, e
+   offline resteremmo senza eventi. Il battito invece non si mette mai in
+   cache: una risposta vecchia direbbe che il ponte e` vivo quando non lo e`. */
+const CAL_URL = 'https://raw.githubusercontent.com/hsagency587/Routine/dati/calendar.json';
+
 const SHELL = [
   './',
   'index.html',
@@ -36,12 +42,11 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
+  const isCal = (url.origin + url.pathname) === CAL_URL;
+  if (url.origin !== self.location.origin && !isCal) return;
 
-  /* app.js chiede calendar.json con ?t=... : in cache ne tengo una sola copia,
-     sotto la chiave senza parametri. */
-  const isCal = url.pathname.endsWith('/calendar.json');
-  const key = isCal ? url.origin + url.pathname : req;
+  /* In cache del calendario ne tengo una copia sola, sotto la chiave pulita. */
+  const key = isCal ? CAL_URL : req;
 
   e.respondWith(
     fetch(req)

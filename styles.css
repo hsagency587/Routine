@@ -93,6 +93,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
 .fresh.stale::before{background:var(--stale)}
 .fresh.down{background:rgba(255,69,58,.16);color:var(--danger);font-weight:700}
 .fresh.down::before{background:var(--danger);animation:blink 1s steps(2,end) infinite}
+/* battito non verificabile: non so, che e` diverso da e` rotto. Niente allarme */
+.fresh.muto::before{background:var(--muted)}
 @keyframes blink{50%{opacity:0}}
 
 .daybar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:var(--s2)}

@@ -4,40 +4,27 @@ on:
   # La sveglia vera: un cron esterno chiama l'API ogni due minuti.
   repository_dispatch:
     types: [refresh-calendar]
-  # Una modifica al codice pubblica il sito.
-  push:
-    branches: [main]
   # Rete di sicurezza se la sveglia esterna smette di funzionare. Il cron di
   # GitHub salta molte esecuzioni, quindi non ci si conta sopra.
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
+# Il calendario vive sul branch "dati" e non passa piu` da Pages: aggiornarlo
+# e` un commit, non una pubblicazione del sito. Ripubblicare tutto ogni due
+# minuti aveva finito per bloccare Pages, che smetteva di applicare i deploy
+# continuando a dichiararli riusciti. Un commit non ha quel tetto.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Un solo deploy alla volta. I run che si accodano nel frattempo vengono
-# saltati tranne l'ultimo: e` cio` che impedisce alla coda di accumularsi
-# quando un run dura quanto l'intervallo della sveglia.
 concurrency:
-  group: pages
+  group: dati
   cancel-in-progress: false
 
 jobs:
-  # Un job solo: avviare un secondo runner costerebbe tempo, e qui il tempo
-  # e` la ragione per cui esiste questo workflow.
-  deploy:
+  dati:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/configure-pages@v5
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -105,8 +92,8 @@ jobs:
               + (off < 0 ? '-' : '+') + pad(Math.floor(a / 60)) + ':' + pad(a % 60);
           }
 
-          /* Qualunque cosa vada storta qui sotto ferma il job prima del deploy:
-             meglio lasciare su Pages l'ultima versione buona che pubblicarci
+          /* Qualunque cosa vada storta qui sotto ferma il job prima del commit:
+             meglio lasciare sul branch dati la versione buona di prima invece di scriverci
              sopra un calendario mezzo scritto. */
           function muori(motivo) {
             console.error(motivo + ' Non pubblico niente.');
@@ -262,31 +249,52 @@ jobs:
           for (const k of keys) out[k] = [];
           for (const b of bucket) out[b.key].push(b.item);
 
-          /* Niente freno e niente confronto con la versione precedente: il file
-             non e` piu` versionato, e` un prodotto del deploy. Si genera ogni volta. */
+          /* Qui si genera e basta, a ogni giro. E il passo dopo che decide se questa
+             versione va committata, confrontando gli eventi con quelli gia pubblicati. */
           writeFileSync(target, JSON.stringify({ generatedAt: romeISO(new Date()), days: out }, null, 2) + '\n');
           console.log('calendar.json generato: ' + bucket.length + ' occorrenze su ' + keys.join(', ') + '.');
           SCRIPT
           node "$RUNNER_TEMP/deps/build-calendar.mjs"
 
-      - name: Prepara _site
+
+      - name: Committa solo se gli eventi sono cambiati
+        env:
+          BRANCH: dati
+          NUOVO: ${{ runner.temp }}/calendar.json
         run: |
-          mkdir -p _site
-          rsync -a \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='.gitignore' \
-            --exclude='README.md' \
-            --exclude='storico' \
-            --exclude='_site' \
-            ./ _site/
-          cp "$RUNNER_TEMP/calendar.json" _site/calendar.json
-          echo "Contenuto di _site:"
-          ls -la _site
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          rm -rf spinta && mkdir spinta && cd spinta
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
+          git init -q
+          git remote add origin \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
 
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          # La copia pubblicata si legge da git e non da raw: raw ha cinque
+          # minuti di cache e ci farebbe riscrivere due volte la stessa cosa.
+          if git fetch -q --depth=1 origin "$BRANCH" 2>/dev/null; then
+            git show FETCH_HEAD:calendar.json > vecchio.json 2>/dev/null || true
+          fi
+
+          # Il confronto ignora generatedAt: cambia per definizione a ogni giro
+          # e non e` un evento del calendario. Cosi' si committa solo quando su
+          # Google e` cambiato qualcosa davvero, o quando scatta la mezzanotte
+          # e la finestra dei quattro giorni scorre.
+          if [ -s vecchio.json ] \
+             && jq -S 'del(.generatedAt)' vecchio.json > prima.json 2>/dev/null \
+             && jq -S 'del(.generatedAt)' "$NUOVO" > dopo.json \
+             && cmp -s prima.json dopo.json; then
+            echo "Eventi invariati: non committo."
+            exit 0
+          fi
+
+          cp "$NUOVO" calendar.json
+          git add calendar.json
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -q -m "calendario $(jq -r '.generatedAt' calendar.json)"
+
+          # Il branch e` orfano e si riscrive per intero a ogni cambio: resta a
+          # un commit solo, e il repository non cresce di commit al giorno.
+          git push -q --force origin "HEAD:$BRANCH"
+          echo "Eventi cambiati: branch $BRANCH riscritto."

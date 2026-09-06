@@ -9,11 +9,22 @@ const CHECKS_KEY  = 'gwork-checks-v1';
 const RECORDS_KEY = 'gwork-records-v1';
 const DIARIO_KEY  = 'gwork-diario-v1';
 const LEGACY_KEY  = 'hs-personal-routine-v1';
-/* Il ciclo di pubblicazione dura circa due minuti e mezzo, quindi l'orario che
-   si legge sulla barra ha fisiologicamente fra i 2 e i 4 minuti e mezzo. Le
-   soglie stanno sopra quella fascia per non dare falsi allarmi: fino a 10
-   minuti e' tutto normale; oltre 10 il ponte sta accumulando ritardo; oltre 30
-   e' fermo davvero. */
+/* Il calendario sta sul branch "dati" e non dentro il sito: si aggiorna con un
+   commit, non ripubblicando Pages. La cache di raw dura cinque minuti, che e'
+   la vera freschezza del file. */
+const CAL_URL = 'https://raw.githubusercontent.com/hsagency587/Routine/dati/calendar.json';
+
+/* Il battito non lo scrive nessuno: si chiede a GitHub quando il ponte ha
+   girato l'ultima volta. E' una lettura pubblica di metadati — niente commit,
+   niente deploy, nessuno dei tetti in cui siamo gia' finiti. Sessanta letture
+   l'ora per indirizzo: l'app ne fa una all'apertura e una ogni due minuti
+   mentre resta aperta, quindi trenta scarse. */
+const RUNS_URL = 'https://api.github.com/repos/hsagency587/Routine/actions/workflows/'
+               + 'calendar.yml/runs?per_page=5&exclude_pull_requests=true';
+const BEAT_MS  = 2 * 60 * 1000;
+
+/* Le soglie del battito: fino a 10 minuti senza un giro riuscito e' normale,
+   oltre 10 il ponte accumula ritardo, oltre 30 e' fermo davvero. */
 const LATE_MS     = 10 * 60 * 1000;
 const DOWN_MS     = 30 * 60 * 1000;
 
@@ -571,39 +582,82 @@ function paintMesi() {
   $('scarica').disabled = !ms.length;
 }
 
-function ageText(ms) {
+/* Solo la durata, senza "fa": la frase intorno cambia da un caso all'altro. */
+function durata(ms) {
   const m = Math.floor(ms / 60000);
-  if (m < 60) return m + ' min fa';
+  if (m < 60) return m + ' min';
   const h = Math.floor(m / 60);
-  if (h < 24) return h + ' h fa';
-  return Math.floor(h / 24) + ' g fa';
+  if (h < 24) return h + ' h';
+  return Math.floor(h / 24) + ' g';
+}
+
+/* Il battito: l'ultimo giro riuscito, l'esito dell'ultimo giro finito e l'ora
+   dell'ultimo giro partito, qualunque fine abbia fatto. Bastano questi tre per
+   distinguere "il ponte e' vivo" da "gira ma fallisce" da "non parte piu'". */
+let beat   = null;
+let beatOk = false;               /* l'ultima interrogazione e' riuscita */
+
+async function loadBeat() {
+  try {
+    const r = await fetch(RUNS_URL, { cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status));
+    const j = await r.json();
+    const runs = Array.isArray(j.workflow_runs) ? j.workflow_runs : [];
+    const ms = s => { const d = new Date(s); return isNaN(d.getTime()) ? null : d.getTime(); };
+
+    const finiti = runs.filter(x => x.status === 'completed');
+    const buono  = finiti.find(x => x.conclusion === 'success');
+
+    beat = {
+      ok:      buono       ? ms(buono.updated_at)   : null,
+      partito: runs.length ? ms(runs[0].created_at) : null
+    };
+    beatOk = true;
+  } catch (e) {
+    beatOk = false;               /* non lo so: e' diverso da "e' rotto" */
+  }
+  paintFresh();
 }
 
 function paintFresh() {
   const f = $('fresh');
-  f.classList.remove('stale', 'down');
+  f.classList.remove('stale', 'down', 'muto');
 
-  if (!cal || !cal.generatedAt) {
+  /* Prima i dati: se il calendario non arriva, il resto e' accademia. */
+  if (loaded && !cal) {
     f.classList.add('down');
-    f.textContent = 'calendar.json non disponibile';
+    f.textContent = 'Calendario non raggiungibile';
     return;
   }
-  const t = new Date(cal.generatedAt);
-  if (isNaN(t.getTime())) {
-    f.classList.add('down');
-    f.textContent = 'calendar.json illeggibile';
+
+  if (!beatOk || !beat) {
+    f.classList.add('muto');
+    f.textContent = 'Battito non verificabile';
     return;
   }
-  const age = Date.now() - t.getTime();
-  const hhmm = fmtTime.format(t);
-  if (age > DOWN_MS) {                 /* prima il rosso: e' la soglia piu' alta */
-    f.classList.add('down');
-    f.textContent = 'FERMO — ultimo aggiornamento alle ' + hhmm + ' (' + ageText(age) + ')';
-  } else if (age > LATE_MS) {
-    f.classList.add('stale');
-    f.textContent = 'In ritardo — ultimo aggiornamento alle ' + hhmm + ' (' + ageText(age) + ')';
+
+  const now = Date.now();
+  const ok  = beat.ok;
+
+  if (ok && now - ok <= LATE_MS) {
+    f.textContent = 'Aggiornato alle ' + fmtTime.format(new Date(ok));
+    return;
+  }
+
+  /* Da qui in giu' qualcosa non va, e la differenza dice cosa: se i giri
+     partono ancora il guasto e' dentro — iCal irraggiungibile, secret
+     revocato; se non parte piu' niente, e' la sveglia esterna che si e'
+     fermata. */
+  const sveglia = beat.partito && now - beat.partito <= LATE_MS;
+  f.classList.add(!ok || now - ok > DOWN_MS ? 'down' : 'stale');
+
+  if (!ok) {
+    f.textContent = 'Nessun giro riuscito fra gli ultimi controllati';
+  } else if (sveglia) {
+    f.textContent = 'I giri falliscono — ultimo riuscito alle '
+      + fmtTime.format(new Date(ok)) + ' (' + durata(now - ok) + ' fa)';
   } else {
-    f.textContent = 'Aggiornato alle ' + hhmm;
+    f.textContent = 'FERMO — nessun giro da ' + durata(now - (beat.partito || ok));
   }
 }
 
@@ -735,7 +789,7 @@ try {
 async function loadCalendar() {
   const before = cal ? cal.generatedAt : null;
   try {
-    const r = await fetch('calendar.json?t=' + Date.now(), { cache: 'no-store' });
+    const r = await fetch(CAL_URL, { cache: 'no-store' });
     if (!r.ok) throw new Error(String(r.status));
     const j = await r.json();
     cal = (j && typeof j === 'object' && j.days && typeof j.days === 'object') ? j : null;
@@ -752,11 +806,15 @@ async function loadCalendar() {
 
 render();
 loadCalendar();
+loadBeat();                       /* subito, all'apertura */
 
-setInterval(paintFresh, 30000);   /* invecchia la riga fra una lettura e l'altra */
-setInterval(loadCalendar, 30000); /* rilegge il file: senza, generatedAt resta fermo */
+setInterval(paintFresh, 30000);   /* invecchia la riga fra un battito e l'altro */
+setInterval(loadCalendar, 30000);
+setInterval(loadBeat, BEAT_MS);   /* solo mentre l'app resta aperta */
+
+/* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve. */
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) loadCalendar();
+  if (!document.hidden) { loadCalendar(); loadBeat(); }
 });
 
 if ('serviceWorker' in navigator) {
