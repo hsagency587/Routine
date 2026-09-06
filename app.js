@@ -902,6 +902,9 @@ function goTo(d) {
    che aggiorna etichette, + e regola di mezzanotte. Un confronto di stringhe,
    nessuna rete. */
 function checkDay() {
+  /* con un dialogo aperto si aspetta il tick dopo: cambiare giorno sotto un
+     pop-up manderebbe la conferma, o la task pescata, sul giorno sbagliato */
+  if (document.querySelector('dialog[open]')) return;
   const t = dayKey(today());
   if (t === renderedDay) return;
   if (viewKey === renderedDay) goTo(today());
@@ -930,7 +933,10 @@ function paintVoto(v) {
     'hsl(' + Math.round((v - 1) / 9 * 120) + ' 80% 52%)');
 }
 
+let chiusuraKey = null;           /* il giorno per cui il pop-up e' aperto */
+
 function openChiusura() {
+  chiusuraKey = viewKey;
   const d = diario[viewKey] || {};
   const v = typeof d.voto === 'number' ? d.voto : 5.5;   /* il centro esatto della scala */
   $('voto').value = v;
@@ -945,20 +951,31 @@ $('voto').addEventListener('input', e => paintVoto(+e.target.value));
 
 /* Annullare — bottone o tasto Esc — vuol dire che la giornata non e' chiusa:
    la spunta torna indietro. Voto e commento gia' scritti restano dov'erano. */
-function annullaChiusura() {
-  setCheck(viewKey, CLOSE_ID, false);
+/* La casella sullo schermo segue lo stato scritto, ma solo se la lista mostra
+   ancora il giorno del pop-up: un ridisegno nel frattempo l'ha ricreata dallo
+   storage, spenta, e va riaccesa. */
+function paintClose(on) {
+  if (viewKey !== chiusuraKey) return;
   const box = $('list').querySelector('input[data-key="' + CLOSE_ID + '"]');
-  if (box) {
-    box.checked = false;
-    box.closest('.row').classList.remove('on');
-  }
+  if (!box) return;
+  box.checked = on;
+  box.closest('.row').classList.toggle('on', on);
+}
+
+function annullaChiusura() {
+  setCheck(chiusuraKey || viewKey, CLOSE_ID, false);
+  paintClose(false);
   syncDerived();
 }
 
-/* Confermare scrive la spunta di chiusura insieme a voto e commento. */
+/* Confermare scrive la spunta di chiusura insieme a voto e commento, sul
+   giorno per cui il pop-up era stato aperto: a cavallo della mezzanotte non
+   e' detto che sia ancora quello mostrato. */
 function confermaChiusura() {
-  setCheck(viewKey, CLOSE_ID, true);
-  setDiario(viewKey, +$('voto').value, $('commento').value);
+  const k = chiusuraKey || viewKey;
+  setCheck(k, CLOSE_ID, true);
+  setDiario(k, +$('voto').value, $('commento').value);
+  paintClose(true);
   riaperta = null;
   syncDerived();
 }
@@ -1233,6 +1250,12 @@ $('editorForm').addEventListener('submit', ev => {
     x = { id: newId(), creata: new Date().toISOString() };
     tstore.tasks.push(x);
   }
+  /* l'editor puo' restare aperto oltre la mezzanotte: un giorno scelto come
+     "oggi" che nel frattempo e' diventato ieri si sposta sull'oggi vero. Una
+     task che stava gia' su quel giorno invece puo' restarci. */
+  const t0 = dayKey(today());
+  if (ed.giorno && ed.giorno < t0 && ed.giorno !== x.giorno) ed.giorno = t0;
+  const mossa = !ed.id || x.giorno !== ed.giorno || x.gws !== ed.gws;
   /* cambiando giorno, o tornando nel serbatoio, la vecchia spunta non segue */
   if (x.giorno && x.giorno !== ed.giorno) setCheck(x.giorno, x.id, false);
   x.nome = nome;
@@ -1240,7 +1263,8 @@ $('editorForm').addEventListener('submit', ev => {
   x.rank = ed.rank;
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
-  riapriSessione(x);
+  /* solo una task nuova o spostata riapre la sessione: un ritocco al nome no */
+  if (mossa) riapriSessione(x);
   ed = null;
   touch(); render(); paintDrawer();
 });
@@ -1289,7 +1313,8 @@ $('pescaList').addEventListener('click', ev => {
   const li = ev.target.closest('.trow[data-task]');
   const x = li && findTask(li.dataset.task);
   if (!x) return;
-  x.giorno = viewKey;
+  /* se nel frattempo il giorno mostrato e' diventato ieri, la task va su oggi */
+  x.giorno = canSchedule(viewKey) ? viewKey : dayKey(today());
   x.gws = pescaGws;
   riapriSessione(x);
   dlgPesca.close();
@@ -1320,6 +1345,8 @@ $('impostazioniForm').addEventListener('submit', () => {
     else localStorage.removeItem(TOKEN_KEY);
   } catch (e) { /* resta solo in memoria */ }
   salvaErr = '';
+  beatAuth = true;                /* col token nuovo il battito riprova la quota personale */
+  beatQuota = 0;
   paintSalva();
   if (token) provaToken();
   else paintSync('nessun token');
@@ -1396,13 +1423,17 @@ async function pullTasks() {
   } catch (e) {
     return;                       /* offline: si va avanti con la copia locale */
   }
-  /* token scaduto o revocato: lo si dice, ma leggere si puo' lo stesso, anonimi */
+  /* token scaduto o revocato: lo si dice, ma leggere si puo' lo stesso, anonimi.
+     L'avviso resta anche dopo la rilettura, altrimenti "allineato" lo coprirebbe. */
+  let tokenKo = false;
   if (r.status === 401 && token) {
+    tokenKo = true;
     paintSync('token rifiutato', true);
     try {
       r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
     } catch (e) { return; }
   }
+  const fine = msg => paintSync(tokenKo ? 'token rifiutato' : msg, tokenKo);
   if (r.status === 404) { if (!tstore.sha) paintSync('nessun file online ancora'); return; }
   if (!r.ok) return;
 
@@ -1418,9 +1449,9 @@ async function pullTasks() {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
     if (sameTasks(remote, tstore.tasks)) {
       rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
-      paintSync('allineato');
+      fine('allineato');
     } else {
-      paintSync('online c\'e` una versione diversa: salvando la sovrascrivi');
+      fine('online c\'e` una versione diversa: salvando la sovrascrivi');
     }
     return;
   }
@@ -1430,7 +1461,7 @@ async function pullTasks() {
   tstore.dirty = false;
   saveLocal();
   tidyTasks(); render(); paintDrawer(); paintSalva();
-  paintSync('allineato alle ' + fmtTime.format(new Date()));
+  fine('allineato alle ' + fmtTime.format(new Date()));
 }
 
 /* Un commit solo, con tutto dentro. */
