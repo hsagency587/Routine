@@ -322,16 +322,19 @@ body.menu-open{overflow:hidden}
 /* i due filtri del menu': due box sulla stessa riga, meta' a testa */
 .filtri{display:flex;gap:var(--s2);padding:var(--s2) var(--s4);border-bottom:1px solid var(--line)}
 .filtro{
-  flex:1;min-width:0;display:flex;align-items:center;gap:var(--s2);
-  min-height:44px;padding:0 var(--s3);
+  flex:1;min-width:0;display:flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 var(--s2);
   background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
-  font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--text-2);cursor:pointer;
 }
 .filtro:active{opacity:.8}
 .filtro[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .filtro span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* il box con la sola icona: quadrato, gli altri due si dividono il resto */
+.filtro-solo{flex:none;width:44px;justify-content:center;padding:0}
 .filtro-ico{width:20px;height:20px;flex:none;fill:currentColor}
 .filtro-tratto{fill:none;stroke:currentColor;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+.filtro-pieno{fill:currentColor;stroke:none}
 
 .drawer-list{flex:1;overflow-y:auto;padding:var(--s2) 0 var(--s4)}
 .grp{margin:0;padding:var(--s3) var(--s4) var(--s1);font-size:11px;letter-spacing:.08em;color:var(--muted)}
@@ -353,6 +356,8 @@ body.menu-open{overflow:hidden}
 .twhen{flex:0 0 auto;font-size:11px;color:var(--muted)}
 /* schedulata: il bordino giallo che chiedevi */
 .trow.sched{box-shadow:inset 3px 0 0 var(--giallo)}
+/* evento del calendario con un cliente: bordino verde, e` di Google non del serbatoio */
+.trow.evento{box-shadow:inset 3px 0 0 var(--accent)}
 .vuoto{margin:0;padding:var(--s4);font-size:13px;color:var(--muted);font-style:italic}
 
 .drawer-foot{
