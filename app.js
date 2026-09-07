@@ -135,11 +135,12 @@ function today() {
 const fmtDate = new Intl.DateTimeFormat('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtTime = new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' });
 
-/* La finestra dei quattro giorni si calcola in locale, non si legge dal file:
+/* La finestra dei giorni si calcola in locale, non si legge dal file:
    se il ponte si ferma, oggi resta comunque spuntabile. */
 function windowKeys() {
   const t = today();
-  return [-1, 0, 1, 2].map(n => dayKey(shift(t, n)));
+  /* ieri, oggi e i sette giorni dopo: deve coincidere con calendar.yml */
+  return [-1, 0, 1, 2, 3, 4, 5, 6, 7].map(n => dayKey(shift(t, n)));
 }
 
 /* Unica regola per le spunte e per il registro: dentro la finestra si scrive,
@@ -302,7 +303,7 @@ function tally(k) {
   return { total, done };
 }
 
-/* Il record si riscrive per i quattro giorni della finestra, gli stessi in cui si
+/* Il record si riscrive per i giorni della finestra, gli stessi in cui si
    puo' spuntare. Fuori resta congelato. Se calendar.json non copre un giorno della
    finestra i suoi eventi valgono zero: meglio un totale parziale che un buco nella
    serie quando il ponte si ferma. */
@@ -660,11 +661,13 @@ function paintDate() {
   const rel = $('dateRel');
   const readOnly = !isEditable(viewKey);
   rel.classList.toggle('ro', readOnly);
+  const fra = Math.round((view.getTime() - t0.getTime()) / 86400000);
   rel.textContent = readOnly                     ? 'sola lettura'
             : viewKey === dayKey(t0)             ? 'oggi'
             : viewKey === dayKey(shift(t0, -1))  ? 'ieri'
             : viewKey === dayKey(shift(t0,  1))  ? 'domani'
-            :                                      'dopodomani';
+            : viewKey === dayKey(shift(t0,  2))  ? 'dopodomani'
+            :                                      'fra ' + fra + ' giorni';
 }
 
 /* La sirena gira finche' resta almeno un evento in finestra protetta da spuntare.
@@ -1157,7 +1160,7 @@ function tidyTasks() {
   let changed = false;
 
   tstore.tasks = tstore.tasks.filter(x => {
-    /* un evento del calendario vive quanto la finestra dei quattro giorni */
+    /* un evento del calendario vive quanto la finestra dei giorni */
     if (x.evento) {
       if (win.indexOf(x.giorno) >= 0) return true;
       changed = true;
