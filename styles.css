@@ -12,6 +12,7 @@
   --danger:#ff453a;
   --stale:#f5a524;
   --giallo:#ffd60a;
+  --gold:#e3b341;
 
   --radius:8px;
 
@@ -326,6 +327,19 @@ body.menu-open{overflow:hidden}
 
 .drawer-list{flex:1;overflow-y:auto;padding:var(--s2) 0 var(--s4)}
 .grp{margin:0;padding:var(--s3) var(--s4) var(--s1);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+/* le testate del menu' per cliente: bottoni, si aprono e si chiudono */
+.grpcli{display:flex;align-items:center;gap:var(--s2);width:100%;
+  background:none;border:0;text-align:left;letter-spacing:0;font-size:13px;
+  padding:var(--s3) var(--s4);color:var(--text);cursor:pointer;font-family:inherit}
+.grpcli:active{background:rgba(255,255,255,.05)}
+.grpcli.open{color:var(--accent)}
+.grpfrec{width:1em;flex:none;color:var(--muted)}
+.grpnome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grptag{flex:none;font-size:10px;letter-spacing:.04em;color:var(--gold)}
+.grproot{font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.grproot.open{color:var(--muted)}
+.grpfiglio{padding-left:var(--s5)}
+.vuotocli{padding-left:44px;padding-top:0;font-size:12px}
 .trows{list-style:none;margin:0;padding:0}
 .trow{
   display:flex;align-items:center;gap:var(--s3);
@@ -468,4 +482,18 @@ body.menu-open{overflow:hidden}
   /* la sirena si ferma ma resta leggibile: bagliore rosso fisso */
   .siren-rot{animation:none}
   .dome{filter:drop-shadow(0 0 5px var(--danger))}
+}
+
+/* La tendina dell'editor: la freccetta e' disegnata a mano, perche' quella di
+   sistema su Android non segue il tema scuro. Deve stare dopo .campo: la
+   scorciatoia `background` di quella regola cancellerebbe l'immagine. */
+select.tendina{
+  -webkit-appearance:none;appearance:none;
+  padding-right:26px;cursor:pointer;
+  background-color:var(--surface-2);
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+                   linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 16px) calc(50% - 2px),calc(100% - 11px) calc(50% - 2px);
+  background-size:5px 5px,5px 5px;
+  background-repeat:no-repeat;
 }

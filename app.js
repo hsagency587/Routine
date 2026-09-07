@@ -21,6 +21,21 @@ const MANCATE_KEY  = 'gwork-taskmancate-v1'; /* task lasciate indietro, giorno p
 const TASK_BRANCH  = 'task';
 const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/tasks.json';
 const RANKS        = ['A', 'B', 'C'];
+/* I clienti su cui possono stare le task. L'id e' quello che resta scritto
+   dentro le task gia' fatte: non si cambia mai. Il nome invece si corregge
+   quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. */
+const CLIENTI = [
+  { id: 'hs-agency',    nome: 'HS Agency', tag: 'My Agency' },
+  { id: 'arbogreen',    nome: 'Arbogreen Service' },
+  { id: 'bergamaschi',  nome: 'Bergamaschi Giardini' },
+  { id: 'di-nucci',     nome: 'Gioielleria Di Nucci' },
+  { id: 'longkai',      nome: 'Longkai' },
+  { id: 'manuela-lovo', nome: 'Manuela Lovo Fotografa' },
+  { id: 'omnia',        nome: 'Omnia Ristrutturazioni' }
+];
+/* i clienti aperti nel menu': restano aperti fra un'apertura e l'altra */
+const CLIAPERTI_KEY = 'gwork-clientiaperti-v1';
+const CLIROOT_KEY   = 'gwork-clientiroot-v1';
 /* Il calendario sta sul branch "dati" e non dentro il sito: si aggiorna con un
    commit, non ripubblicando Pages. La cache di raw dura cinque minuti, che e'
    la vera freschezza del file. */
@@ -1039,6 +1054,7 @@ function validTask(x) {
     nome:   x.nome,
     desc:   typeof x.desc === 'string' ? x.desc : '',
     rank:   RANKS.indexOf(x.rank) >= 0 ? x.rank : 'B',
+    cliente: CLIENTI.some(c => c.id === x.cliente) ? x.cliente : null,
     giorno: giorno,
     gws:    giorno ? gws : null,
     creata: typeof x.creata === 'string' ? x.creata : ''
@@ -1138,22 +1154,80 @@ function trowNode(x, pick) {
   return li;
 }
 
-/* Il menu': A, B, C. Di base solo il serbatoio; con l'interruttore anche le
-   schedulate, col bordino giallo. */
+/* Quali clienti sono aperti nel menu'. Piu' di uno alla volta: aprendone uno
+   gli altri restano come stanno, l'elenco si allunga e si scorre. */
+let cliAperti = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLIAPERTI_KEY));
+    return new Set(Array.isArray(v) ? v : []);
+  } catch (e) { return new Set(); }
+})();
+
+/* La tendina che contiene tutti i clienti. Chiusa, il menu' e' una riga sola. */
+let cliRoot = (() => {
+  try { return localStorage.getItem(CLIROOT_KEY) === '1'; } catch (e) { return false; }
+})();
+
+function salvaAperti() {
+  try {
+    localStorage.setItem(CLIAPERTI_KEY, JSON.stringify([...cliAperti]));
+    localStorage.setItem(CLIROOT_KEY, cliRoot ? '1' : '0');
+  } catch (e) {}
+}
+
+/* Tutti i clienti compaiono sempre, anche quelli senza niente dentro: l'elenco
+   e' anche la mappa di chi si sta seguendo. "Senza cliente" invece appare solo
+   quando ha qualcosa, altrimenti sarebbe una riga per nessuno. */
+function gruppiCliente(list) {
+  return CLIENTI.map(c => ({ k: c.id, nome: c.nome, tag: c.tag }))
+    .concat([{ k: '', nome: 'Senza cliente' }])
+    .map(g => ({ g: g, tasks: list.filter(x => (x.cliente || '') === g.k).sort(byRank) }))
+    .filter(o => o.g.k !== '' || o.tasks.length);
+}
+
+/* Il menu': una riga CLIENTI che si apre, e dentro un gruppo per cliente. Di
+   base solo il serbatoio; con l'interruttore anche le schedulate, col bordino
+   giallo. Il rank resta la pastiglia sulla riga e l'ordine dentro il gruppo. */
 function paintDrawer() {
   const box = $('drawerList');
   box.textContent = '';
+  const list = tstore.tasks.filter(x => tutte || !x.giorno);
   let n = 0;
-  for (const r of RANKS) {
-    const list = tstore.tasks.filter(x => x.rank === r && (tutte || !x.giorno)).sort(byRank);
-    if (!list.length) continue;
-    n += list.length;
-    box.appendChild(el('p', 'grp', 'RANK ' + r));
+
+  const gruppi = gruppiCliente(list);
+  for (const o of gruppi) n += o.tasks.length;
+
+  {
+    const r = el('button', 'grp grpcli grproot' + (cliRoot ? ' open' : ''));
+    r.type = 'button';
+    r.dataset.root = '1';
+    r.setAttribute('aria-expanded', cliRoot ? 'true' : 'false');
+    r.appendChild(el('span', 'grpfrec', cliRoot ? '▾' : '▸'));
+    r.appendChild(el('span', 'grpnome', 'CLIENTI'));
+    box.appendChild(r);
+  }
+
+  for (const o of cliRoot ? gruppi : []) {
+    const open = cliAperti.has(o.g.k);
+    const h = el('button', 'grp grpcli grpfiglio' + (open ? ' open' : ''));
+    h.type = 'button';
+    h.dataset.cli = o.g.k;
+    h.setAttribute('aria-expanded', open ? 'true' : 'false');
+    h.appendChild(el('span', 'grpfrec', open ? '▾' : '▸'));
+    h.appendChild(el('span', 'grpnome', o.g.nome));
+    if (o.g.tag) h.appendChild(el('span', 'grptag', o.g.tag));
+    box.appendChild(h);
+    if (!open) continue;
+    if (!o.tasks.length) {
+      box.appendChild(el('p', 'vuoto vuotocli', tutte ? 'Nessuna task' : 'Niente nel serbatoio'));
+      continue;
+    }
     const ul = el('ul', 'trows');
-    for (const x of list) ul.appendChild(trowNode(x, false));
+    for (const x of o.tasks) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
   }
-  if (!n) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+
+  if (!n && !cliRoot) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
   paintSync();
 }
 
@@ -1164,8 +1238,25 @@ $('tutte').addEventListener('change', e => { tutte = e.target.checked; paintDraw
 $('nuova').addEventListener('click', () => openEditor(null));
 $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
-/* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
+/* Le testate si aprono e si chiudono; tutta la riga di una task apre l'editor:
+   i tre puntini sono il segnale, non l'unico posto. La riga CLIENTI ha tutte e
+   due le classi, quindi grproot va guardata prima di grpcli. */
 $('drawerList').addEventListener('click', ev => {
+  const root = ev.target.closest('button.grproot');
+  if (root) {
+    cliRoot = !cliRoot;
+    salvaAperti();
+    paintDrawer();
+    return;
+  }
+  const g = ev.target.closest('button.grpcli');
+  if (g) {
+    const k = g.dataset.cli;
+    if (cliAperti.has(k)) cliAperti.delete(k); else cliAperti.add(k);
+    salvaAperti();
+    paintDrawer();
+    return;
+  }
   const li = ev.target.closest('.trow[data-task]');
   if (li) openEditor(li.dataset.task);
 });
@@ -1173,7 +1264,7 @@ $('drawerList').addEventListener('click', ev => {
 /* ------------------------------------------------------------ editor ---- */
 
 const dlgEd = $('editor');
-let ed = null;                   /* { id, rank, giorno, gws }: lo stato dell'editor aperto */
+let ed = null;                   /* { id, rank, cliente, giorno, gws }: lo stato dell'editor */
 
 /* I giorni su cui si puo' mettere una task. Se la task sta gia' su un giorno
    che non e' piu' fra questi, quel giorno si mostra com'e': si puo' lasciare
@@ -1188,6 +1279,19 @@ function dayChoices(current) {
   return out;
 }
 
+/* Le tendine: stessa forma di chips(), ma in un <select>. Occupano una riga
+   sola anche quando le voci sono tante. */
+function tendina(box, items, sel) {
+  box.textContent = '';
+  for (const it of items) {
+    const o = document.createElement('option');
+    o.value = it.k;
+    o.textContent = it.lab;
+    if (it.k === sel) o.selected = true;
+    box.appendChild(o);
+  }
+}
+
 function chips(box, items, sel) {
   box.textContent = '';
   for (const it of items) {
@@ -1200,6 +1304,8 @@ function chips(box, items, sel) {
 
 function paintEditor() {
   chips($('tRank'), RANKS.map(r => ({ k: r, lab: r })), ed.rank);
+  tendina($('tCliente'), [{ k: '', lab: 'Nessuno' }]
+          .concat(CLIENTI.map(c => ({ k: c.id, lab: c.nome }))), ed.cliente || '');
   chips($('tGiorno'), dayChoices(ed.giorno), ed.giorno || '');
   const sched = !!ed.giorno;
   $('tGwsLab').hidden = !sched;
@@ -1209,8 +1315,8 @@ function paintEditor() {
 
 function openEditor(id, preset) {
   const x = id ? findTask(id) : null;
-  ed = x ? { id: x.id, rank: x.rank, giorno: x.giorno, gws: x.gws }
-         : { id: null, rank: 'B',
+  ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws }
+         : { id: null, rank: 'B', cliente: null,
              giorno: (preset && preset.giorno) || null,
              gws: preset && preset.gws != null ? preset.gws : null };
   if (ed.giorno && ed.gws == null) ed.gws = 0;
@@ -1239,6 +1345,12 @@ $('editorForm').addEventListener('click', ev => {
   paintEditor();
 });
 
+/* La tendina del cliente. */
+$('editorForm').addEventListener('change', ev => {
+  if (!ed) return;
+  if (ev.target.id === 'tCliente') { ed.cliente = ev.target.value || null; paintEditor(); }
+});
+
 $('editorForm').addEventListener('submit', ev => {
   const nome = $('tNome').value.trim();
   if (!nome) {
@@ -1264,6 +1376,7 @@ $('editorForm').addEventListener('submit', ev => {
   x.nome = nome;
   x.desc = $('tDesc').value;
   x.rank = ed.rank;
+  x.cliente = ed.cliente;
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
   /* solo una task nuova o spostata riapre la sessione: un ritocco al nome no */
