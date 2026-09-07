@@ -197,6 +197,8 @@ function setCheck(k, id, on) {
 
 let cal = null;                   /* contenuto di calendar.json, oppure null */
 let loaded = false;               /* true dopo il primo tentativo di lettura */
+let calAt  = 0;                   /* quando e' arrivata l'ultima lettura buona (ms) */
+let calErr = false;               /* l'ultima lettura e' fallita: si tiene la copia buona */
 
 const isCovered = k => !!(cal && cal.days && Object.prototype.hasOwnProperty.call(cal.days, k));
 
@@ -785,8 +787,21 @@ let beat   = null;
 let beatOk = false;               /* l'ultima interrogazione e' riuscita */
 let beatAuth  = true;             /* col token si usa la quota personale (5000/ora) */
 let beatQuota = 0;                /* quota anonima esaurita: fino a quando (ms) */
+let beatSkew  = 0;                /* ora di GitHub meno ora del telefono (ms): il giudice e' GitHub */
+
+/* L'ora vera la dice il server del sito: un telefono con l'orologio sbagliato
+   non deve vedere in ritardo un ponte sano. L'API di GitHub non espone la sua
+   Date al browser, la stessa origine si': un file piccolo, senza cache. */
+async function leggiOra() {
+  try {
+    const r = await fetch('manifest.webmanifest', { cache: 'no-store' });
+    const d = new Date(r.headers.get('date') || '');
+    if (!isNaN(d.getTime())) beatSkew = d.getTime() - Date.now();
+  } catch (e) { /* si resta con l'ora del telefono */ }
+}
 
 async function loadBeat() {
+  await leggiOra();
   if (beatQuota && Date.now() < beatQuota) { paintFresh(); return; }
   beatQuota = 0;
   try {
@@ -826,11 +841,28 @@ async function loadBeat() {
 function paintFresh() {
   const f = $('fresh');
   f.classList.remove('stale', 'down', 'muto');
+  const now = Date.now() + beatSkew;
+  const eta = cal && calAt ? ' · eventi di ' + durata(Math.max(0, Date.now() - calAt)) + ' fa' : '';
 
-  /* Prima i dati: se il calendario non arriva, il resto e' accademia. */
+  /* Senza rete non e' rotto niente: si aspetta, e si dice quanto sono vecchi
+     gli eventi che si stanno guardando. */
+  if (navigator.onLine === false) {
+    f.classList.add('muto');
+    f.textContent = 'Sei offline' + eta;
+    return;
+  }
+
+  /* Prima i dati: se il calendario non e' mai arrivato, il resto e' accademia. */
   if (loaded && !cal) {
     f.classList.add('down');
     f.textContent = 'Calendario non raggiungibile';
+    return;
+  }
+
+  /* la rete c'e' ma GitHub non risponde: si tiene l'ultima copia buona */
+  if (loaded && calErr) {
+    f.classList.add('stale');
+    f.textContent = 'GitHub non risponde' + eta;
     return;
   }
 
@@ -846,7 +878,6 @@ function paintFresh() {
     return;
   }
 
-  const now = Date.now();
   const ok  = beat.ok;
 
   if (ok && now - ok <= LATE_MS) {
@@ -1695,7 +1726,7 @@ async function pushTasks(opts) {
   if (!tstore.dirty || salvando) return;
   if (!token) { salvaErr = 'manca il token'; paintSalva(); paintSync('manca il token', true); return; }
 
-  salvando = true; salvaErr = '';
+  salvando = true; salvaErr = ''; salvaRetry = false;
   paintSalva();
 
   /* la fotografia di cio' che parte: se nel frattempo si tocca qualcosa,
@@ -1727,7 +1758,7 @@ async function pushTasks(opts) {
       keepalive: !!opts.keepalive && body.length < 60000
     });
   } catch (e) {
-    salvando = false; salvaErr = 'rete assente'; paintSalva(); return;
+    salvando = false; salvaErr = 'rete assente'; salvaRetry = true; paintSalva(); return;
   }
   salvando = false;
 
@@ -1761,6 +1792,7 @@ async function pushTasks(opts) {
              : r.status === 403 ? 'token senza permesso'
              : r.status === 404 ? 'branch task assente'
              :                    'errore ' + r.status;
+    salvaRetry = r.status >= 500;   /* un guasto di GitHub passa; un token no */
     paintSalva(); paintSync(salvaErr, true);
     return;
   }
@@ -1779,6 +1811,15 @@ function salvagente() {
   pushTasks({ keepalive: true });
 }
 
+/* Un salvataggio caduto per la rete, o per un 5xx di GitHub, si riprova da
+   solo: quando la rete torna, a ogni riapertura, e al passo del battito
+   mentre l'app resta aperta. Token rifiutato o senza permesso no: quelli li
+   sistema la persona, riprovare sarebbe solo rumore. */
+let salvaRetry = false;
+function riprovaSalva() {
+  if (tstore.dirty && salvaRetry && !salvando && token) pushTasks();
+}
+
 $('salva').addEventListener('click', () => pushTasks());
 $('salvaMenu').addEventListener('click', () => pushTasks());
 
@@ -1790,15 +1831,19 @@ try {
   /* niente da rimuovere */
 }
 
+/* Una lettura fallita non cancella il calendario: si tiene l'ultima copia
+   buona e la riga in alto dice da quanto e' vecchia. Un 5xx di GitHub o una
+   risposta troncata non devono svuotare la giornata per trenta secondi. */
 async function loadCalendar() {
   const before = cal ? cal.generatedAt : null;
   try {
     const r = await fetch(CAL_URL, { cache: 'no-store' });
     if (!r.ok) throw new Error(String(r.status));
     const j = await r.json();
-    cal = (j && typeof j === 'object' && j.days && typeof j.days === 'object') ? j : null;
+    if (!(j && typeof j === 'object' && j.days && typeof j.days === 'object')) throw new Error('forma');
+    cal = j; calAt = Date.now(); calErr = false;
   } catch (e) {
-    cal = null;
+    calErr = true;
   }
   const first = !loaded;
   loaded = true;
@@ -1817,16 +1862,21 @@ pullTasks();                      /* il serbatoio, subito */
 
 setInterval(() => { checkDay(); paintFresh(); }, 30000);   /* invecchia la riga, e vede la mezzanotte */
 setInterval(loadCalendar, 30000);
-setInterval(loadBeat, BEAT_MS);   /* solo mentre l'app resta aperta */
+setInterval(() => { loadBeat(); riprovaSalva(); }, BEAT_MS);   /* solo mentre l'app resta aperta */
 
 /* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve.
    Chiudendola parte il salvagente: un tentativo di salvare quello che e'
    rimasto in sospeso, nei pochi istanti che il browser concede. */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) salvagente();
-  else { checkDay(); loadCalendar(); loadBeat(); pullTasks(); }
+  else { checkDay(); loadCalendar(); loadBeat(); pullTasks(); riprovaSalva(); }
 });
 window.addEventListener('pagehide', salvagente);
+
+/* La rete che va e viene: appena torna si rilegge tutto e si riprova il
+   salvataggio rimasto in sospeso; appena manca la riga in alto lo dice. */
+window.addEventListener('online', () => { loadCalendar(); loadBeat(); pullTasks(); riprovaSalva(); });
+window.addEventListener('offline', paintFresh);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
