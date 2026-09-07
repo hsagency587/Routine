@@ -1014,9 +1014,24 @@ function openChiusura() {
   $('voto').value = v;
   paintVoto(v);
   $('commento').value = d.commento || '';
+  $('tuttoFatto').checked = false;   /* si sceglie ogni volta, non si ricorda */
   $('chiusuraDay').textContent = fmtLong.format(view);
   dlg.returnValue = '';
   dlg.showModal();
+}
+
+/* Segna fatto tutto quello che c'e' nel giorno: tappe, sottotappe, la prima
+   delle alternative, eventi, task e anche le task lasciate indietro. Il
+   registro scrive 100%. Si fa solo su richiesta, dal pop-up di chiusura. */
+function completaGiornata(k) {
+  const g = childrenOf(k);
+  const c = dayChecks(k);
+  for (const t of ROUTINE) {
+    setCheck(k, t.id, true);
+    if (t.sub) for (const s of t.sub) setCheck(k, s.id, true);
+    if (t.choice && !t.choice.some(o => c[o.id])) setCheck(k, t.choice[0].id, true);
+    if (t.gws != null) for (const e of g[t.gws]) setCheck(k, e.id, true);
+  }
 }
 
 $('voto').addEventListener('input', e => paintVoto(+e.target.value));
@@ -1045,11 +1060,14 @@ function annullaChiusura() {
    e' detto che sia ancora quello mostrato. */
 function confermaChiusura() {
   const k = chiusuraKey || viewKey;
+  const tutto = $('tuttoFatto').checked;
+  if (tutto) completaGiornata(k);
   setCheck(k, CLOSE_ID, true);
   setDiario(k, +$('voto').value, $('commento').value);
   paintClose(true);
   riaperta = null;
-  syncDerived();
+  /* con tutto segnato cambiano molte righe: si ridisegna, se e' il giorno mostrato */
+  if (tutto && k === viewKey) render(); else syncDerived();
 }
 
 $('chiusuraForm').addEventListener('submit', confermaChiusura);

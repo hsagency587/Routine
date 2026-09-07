@@ -472,6 +472,14 @@ body.menu-open{overflow:hidden}
   font:inherit;resize:vertical;
 }
 
+/* la spunta "segna la giornata al 100%" nel pop-up di chiusura */
+.tutto{
+  display:flex;align-items:center;gap:var(--s3);
+  min-height:44px;margin-top:var(--s3);
+  font-size:13px;color:var(--text-2);
+}
+.tutto input{width:19px;height:19px;margin:0;accent-color:var(--accent)}
+
 .chiusura-btn{display:flex;gap:var(--s2);margin-top:var(--s4)}
 .btn{
   flex:1;min-height:44px;border-radius:var(--radius);
