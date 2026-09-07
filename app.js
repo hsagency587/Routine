@@ -21,6 +21,21 @@ const MANCATE_KEY  = 'gwork-taskmancate-v1'; /* task lasciate indietro, giorno p
 const TASK_BRANCH  = 'task';
 const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/tasks.json';
 const RANKS        = ['A', 'B', 'C'];
+/* I clienti su cui possono stare le task. L'id e' quello che resta scritto
+   dentro le task gia' fatte: non si cambia mai. Il nome invece si corregge
+   quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. */
+const CLIENTI = [
+  { id: 'hs-agency',    nome: 'HS-Agency', tag: 'My Agency' },
+  { id: 'arbogreen',    nome: 'Arbogreen' },
+  { id: 'bergamaschi',  nome: 'Bergamaschi' },
+  { id: 'di-nucci',     nome: 'Di-Nucci' },
+  { id: 'longkai',      nome: 'Longkai' },
+  { id: 'manuela-lovo', nome: 'Manuela-Lovo' },
+  { id: 'omnia',        nome: 'Omnia' }
+];
+/* i clienti aperti nel menu': restano aperti fra un'apertura e l'altra */
+const CLIAPERTI_KEY = 'gwork-clientiaperti-v1';
+const CLIROOT_KEY   = 'gwork-clientiroot-v1';
 /* Il calendario sta sul branch "dati" e non dentro il sito: si aggiorna con un
    commit, non ripubblicando Pages. La cache di raw dura cinque minuti, che e'
    la vera freschezza del file. */
@@ -1039,6 +1054,7 @@ function validTask(x) {
     nome:   x.nome,
     desc:   typeof x.desc === 'string' ? x.desc : '',
     rank:   RANKS.indexOf(x.rank) >= 0 ? x.rank : 'B',
+    cliente: CLIENTI.some(c => c.id === x.cliente) ? x.cliente : null,
     giorno: giorno,
     gws:    giorno ? gws : null,
     creata: typeof x.creata === 'string' ? x.creata : ''
@@ -1103,6 +1119,14 @@ function riapriSessione(x) {
 
 let tutte = false;               /* l'interruttore "mostra anche le schedulate" */
 
+/* L'interruttore "dividi per cliente". Di base spento: il menu' e' A, B, C e
+   basta. Acceso, le task dei clienti scendono nella tendina CLIENTI e sopra
+   restano solo quelle senza cliente, sempre per rank. Si ricorda. */
+const PERCLIENTE_KEY = 'gwork-percliente-v1';
+let perCliente = (() => {
+  try { return localStorage.getItem(PERCLIENTE_KEY) === '1'; } catch (e) { return false; }
+})();
+
 function openMenu(on) {
   $('drawer').classList.toggle('open', on);
   $('velo').hidden = !on;
@@ -1110,6 +1134,28 @@ function openMenu(on) {
   $('menuBtn').setAttribute('aria-expanded', on ? 'true' : 'false');
   if (on) paintDrawer();
 }
+
+/* Sul telefono il menu' si apre con uno swipe verso sinistra e si chiude con
+   uno verso destra, da qualunque punto della pagina. Il gesto deve essere
+   deciso: almeno 60px in orizzontale e piu' orizzontale che verticale, cosi'
+   lo scorrimento delle liste non lo scatena. Con un dialogo aperto niente:
+   il dito sta lavorando li' dentro. */
+let swipe = null;
+document.addEventListener('touchstart', e => {
+  swipe = e.touches.length === 1 && !document.querySelector('dialog[open]')
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+}, { passive: true });
+document.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!swipe) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
+  swipe = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  const aperto = $('drawer').classList.contains('open');
+  if (dx < 0 && !aperto) openMenu(true);
+  else if (dx > 0 && aperto) openMenu(false);
+}, { passive: true });
 
 function whenText(x) {
   const t0 = today();
@@ -1138,22 +1184,91 @@ function trowNode(x, pick) {
   return li;
 }
 
-/* Il menu': A, B, C. Di base solo il serbatoio; con l'interruttore anche le
-   schedulate, col bordino giallo. */
+/* Quali clienti sono aperti nel menu'. Piu' di uno alla volta: aprendone uno
+   gli altri restano come stanno, l'elenco si allunga e si scorre. */
+let cliAperti = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLIAPERTI_KEY));
+    return new Set(Array.isArray(v) ? v : []);
+  } catch (e) { return new Set(); }
+})();
+
+/* La tendina che contiene tutti i clienti. Chiusa, il menu' e' una riga sola. */
+let cliRoot = (() => {
+  try { return localStorage.getItem(CLIROOT_KEY) === '1'; } catch (e) { return false; }
+})();
+
+function salvaAperti() {
+  try {
+    localStorage.setItem(CLIAPERTI_KEY, JSON.stringify([...cliAperti]));
+    localStorage.setItem(CLIROOT_KEY, cliRoot ? '1' : '0');
+  } catch (e) {}
+}
+
+/* Tutti i clienti compaiono sempre, anche quelli senza niente dentro: l'elenco
+   e' anche la mappa di chi si sta seguendo. Le task senza cliente non stanno
+   qui: restano sopra, nei blocchi per rank. */
+function gruppiCliente(list) {
+  return CLIENTI.map(c => ({ k: c.id, nome: c.nome, tag: c.tag }))
+    .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byRank) }));
+}
+
+/* Il menu'. Di base A, B, C: tutte le task del serbatoio, per rank. Con
+   "dividi per cliente" le task dei clienti scendono nella tendina CLIENTI, un
+   gruppo per cliente, e sopra restano per rank solo quelle senza cliente. Con
+   "mostra anche le schedulate" entrano pure quelle sui giorni, col bordino
+   giallo. Il rank resta la pastiglia sulla riga e l'ordine dentro il gruppo. */
 function paintDrawer() {
   const box = $('drawerList');
   box.textContent = '';
-  let n = 0;
+  const list = tstore.tasks.filter(x => tutte || !x.giorno);
+  const sopra = perCliente ? list.filter(x => !x.cliente) : list;
+
   for (const r of RANKS) {
-    const list = tstore.tasks.filter(x => x.rank === r && (tutte || !x.giorno)).sort(byRank);
-    if (!list.length) continue;
-    n += list.length;
+    const blocco = sopra.filter(x => x.rank === r).sort(byRank);
+    if (!blocco.length) continue;
     box.appendChild(el('p', 'grp', 'RANK ' + r));
     const ul = el('ul', 'trows');
-    for (const x of list) ul.appendChild(trowNode(x, false));
+    for (const x of blocco) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
   }
-  if (!n) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+
+  if (!list.length && !(perCliente && cliRoot)) {
+    box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+  }
+  if (!perCliente) { paintSync(); return; }
+
+  const gruppi = gruppiCliente(list);
+
+  {
+    const r = el('button', 'grp grpcli grproot' + (cliRoot ? ' open' : ''));
+    r.type = 'button';
+    r.dataset.root = '1';
+    r.setAttribute('aria-expanded', cliRoot ? 'true' : 'false');
+    r.appendChild(el('span', 'grpfrec', cliRoot ? '▾' : '▸'));
+    r.appendChild(el('span', 'grpnome', 'CLIENTI'));
+    box.appendChild(r);
+  }
+
+  for (const o of cliRoot ? gruppi : []) {
+    const open = cliAperti.has(o.g.k);
+    const h = el('button', 'grp grpcli grpfiglio' + (open ? ' open' : ''));
+    h.type = 'button';
+    h.dataset.cli = o.g.k;
+    h.setAttribute('aria-expanded', open ? 'true' : 'false');
+    h.appendChild(el('span', 'grpfrec', open ? '▾' : '▸'));
+    h.appendChild(el('span', 'grpnome', o.g.nome));
+    if (o.g.tag) h.appendChild(el('span', 'grptag', o.g.tag));
+    box.appendChild(h);
+    if (!open) continue;
+    if (!o.tasks.length) {
+      box.appendChild(el('p', 'vuoto vuotocli', tutte ? 'Nessuna task' : 'Niente nel serbatoio'));
+      continue;
+    }
+    const ul = el('ul', 'trows');
+    for (const x of o.tasks) ul.appendChild(trowNode(x, false));
+    box.appendChild(ul);
+  }
   paintSync();
 }
 
@@ -1161,11 +1276,34 @@ $('menuBtn').addEventListener('click', () => openMenu(true));
 $('chiudiMenu').addEventListener('click', () => openMenu(false));
 $('velo').addEventListener('click', () => openMenu(false));
 $('tutte').addEventListener('change', e => { tutte = e.target.checked; paintDrawer(); });
+$('perCliente').checked = perCliente;
+$('perCliente').addEventListener('change', e => {
+  perCliente = e.target.checked;
+  try { localStorage.setItem(PERCLIENTE_KEY, perCliente ? '1' : '0'); } catch (e2) {}
+  paintDrawer();
+});
 $('nuova').addEventListener('click', () => openEditor(null));
 $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
-/* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
+/* Le testate si aprono e si chiudono; tutta la riga di una task apre l'editor:
+   i tre puntini sono il segnale, non l'unico posto. La riga CLIENTI ha tutte e
+   due le classi, quindi grproot va guardata prima di grpcli. */
 $('drawerList').addEventListener('click', ev => {
+  const root = ev.target.closest('button.grproot');
+  if (root) {
+    cliRoot = !cliRoot;
+    salvaAperti();
+    paintDrawer();
+    return;
+  }
+  const g = ev.target.closest('button.grpcli');
+  if (g) {
+    const k = g.dataset.cli;
+    if (cliAperti.has(k)) cliAperti.delete(k); else cliAperti.add(k);
+    salvaAperti();
+    paintDrawer();
+    return;
+  }
   const li = ev.target.closest('.trow[data-task]');
   if (li) openEditor(li.dataset.task);
 });
@@ -1173,7 +1311,7 @@ $('drawerList').addEventListener('click', ev => {
 /* ------------------------------------------------------------ editor ---- */
 
 const dlgEd = $('editor');
-let ed = null;                   /* { id, rank, giorno, gws }: lo stato dell'editor aperto */
+let ed = null;                   /* { id, rank, cliente, giorno, gws }: lo stato dell'editor */
 
 /* I giorni su cui si puo' mettere una task. Se la task sta gia' su un giorno
    che non e' piu' fra questi, quel giorno si mostra com'e': si puo' lasciare
@@ -1188,6 +1326,29 @@ function dayChoices(current) {
   return out;
 }
 
+/* Le tendine: stessa forma di chips(), ma un bottone che mostra la scelta e
+   apre un pannello con le voci. Occupano una riga sola anche quando le voci
+   sono tante. Ogni ridisegno le lascia chiuse. */
+function tendina(box, items, sel) {
+  const btn = box.querySelector('.tendina-btn');
+  const ul  = box.querySelector('.tendina-lista');
+  const cur = items.find(it => it.k === sel) || items[0];
+  btn.textContent = cur.lab;
+  btn.setAttribute('aria-expanded', 'false');
+  ul.hidden = true;
+  ul.textContent = '';
+  for (const it of items) {
+    const b = el('button', 'tvoce' + (it.k === sel ? ' sel' : ''), it.lab);
+    b.type = 'button';
+    b.dataset.v = it.k;
+    b.setAttribute('role', 'option');
+    b.setAttribute('aria-selected', it.k === sel ? 'true' : 'false');
+    const li = el('li', '');
+    li.appendChild(b);
+    ul.appendChild(li);
+  }
+}
+
 function chips(box, items, sel) {
   box.textContent = '';
   for (const it of items) {
@@ -1200,6 +1361,8 @@ function chips(box, items, sel) {
 
 function paintEditor() {
   chips($('tRank'), RANKS.map(r => ({ k: r, lab: r })), ed.rank);
+  tendina($('tCliente'), [{ k: '', lab: 'Nessuno' }]
+          .concat(CLIENTI.map(c => ({ k: c.id, lab: c.nome }))), ed.cliente || '');
   chips($('tGiorno'), dayChoices(ed.giorno), ed.giorno || '');
   const sched = !!ed.giorno;
   $('tGwsLab').hidden = !sched;
@@ -1209,8 +1372,8 @@ function paintEditor() {
 
 function openEditor(id, preset) {
   const x = id ? findTask(id) : null;
-  ed = x ? { id: x.id, rank: x.rank, giorno: x.giorno, gws: x.gws }
-         : { id: null, rank: 'B',
+  ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws }
+         : { id: null, rank: 'B', cliente: null,
              giorno: (preset && preset.giorno) || null,
              gws: preset && preset.gws != null ? preset.gws : null };
   if (ed.giorno && ed.gws == null) ed.gws = 0;
@@ -1226,8 +1389,17 @@ function openEditor(id, preset) {
 }
 
 $('editorForm').addEventListener('click', ev => {
+  if (!ed) return;
+  /* la tendina del cliente: una voce sceglie, il bottone apre e chiude il
+     pannello, un tocco in qualunque altro punto lo chiude */
+  const voce = ev.target.closest('button.tvoce');
+  if (voce) { ed.cliente = voce.dataset.v || null; paintEditor(); return; }
+  const lista = $('tClienteLista');
+  const apri = !!ev.target.closest('.tendina-btn') && lista.hidden;
+  lista.hidden = !apri;
+  $('tClienteBtn').setAttribute('aria-expanded', apri ? 'true' : 'false');
   const b = ev.target.closest('button.chip');
-  if (!b || !ed) return;
+  if (!b) return;
   const v = b.dataset.v;
   const box = b.parentNode.id;
   if (box === 'tRank') ed.rank = v;
@@ -1264,6 +1436,7 @@ $('editorForm').addEventListener('submit', ev => {
   x.nome = nome;
   x.desc = $('tDesc').value;
   x.rank = ed.rank;
+  x.cliente = ed.cliente;
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
   /* solo una task nuova o spostata riapre la sessione: un ritocco al nome no */

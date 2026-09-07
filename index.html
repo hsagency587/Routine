@@ -85,6 +85,10 @@
     <input type="checkbox" id="tutte">
     <span>Mostra anche le schedulate</span>
   </label>
+  <label class="switch">
+    <input type="checkbox" id="perCliente">
+    <span>Dividi per cliente</span>
+  </label>
   <div class="drawer-list" id="drawerList"></div>
   <div class="drawer-foot">
     <button type="button" class="link" id="impostazioniBtn">Impostazioni</button>
@@ -105,6 +109,13 @@
 
     <p class="commento-lab">Rank</p>
     <div class="chips" id="tRank"></div>
+
+    <p class="commento-lab" id="tClienteLab">Cliente</p>
+    <div class="tendina" id="tCliente">
+      <button type="button" class="campo tendina-btn" id="tClienteBtn"
+              aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tClienteLab tClienteBtn"></button>
+      <ul class="tendina-lista" id="tClienteLista" role="listbox" hidden></ul>
+    </div>
 
     <p class="commento-lab">Giorno</p>
     <div class="chips" id="tGiorno"></div>
