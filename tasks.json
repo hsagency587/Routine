@@ -5,9 +5,9 @@
       "creata": "2026-09-07T10:31:51.613Z",
       "nome": "Ordini Temu",
       "desc": "",
-      "rank": "A",
-      "giorno": "2026-09-07",
-      "gws": 5
+      "rank": "B",
+      "giorno": null,
+      "gws": null
     },
     {
       "id": "tmtr3qgn67781",
@@ -15,7 +15,7 @@
       "nome": "Check Crypto Gem",
       "desc": "",
       "rank": "B",
-      "giorno": "2026-09-07",
+      "giorno": "2026-09-08",
       "gws": 4
     },
     {
@@ -36,6 +36,16 @@
       "cliente": null,
       "giorno": null,
       "gws": null
+    },
+    {
+      "id": "tmtrjvq0temn5",
+      "creata": "2026-09-07T18:04:37.373Z",
+      "nome": "CHECK NASPI",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-08",
+      "gws": 0
     }
   ]
 }
