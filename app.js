@@ -33,9 +33,6 @@ const CLIENTI = [
   { id: 'manuela-lovo', nome: 'Manuela-Lovo' },
   { id: 'omnia',        nome: 'Omnia' }
 ];
-/* i clienti aperti nel menu': restano aperti fra un'apertura e l'altra */
-const CLIAPERTI_KEY = 'gwork-clientiaperti-v1';
-const CLIROOT_KEY   = 'gwork-clientiroot-v1';
 /* Il calendario sta sul branch "dati" e non dentro il sito: si aggiorna con un
    commit, non ripubblicando Pages. La cache di raw dura cinque minuti, che e'
    la vera freschezza del file. */
@@ -1119,9 +1116,9 @@ function riapriSessione(x) {
 
 let tutte = false;               /* l'interruttore "mostra anche le schedulate" */
 
-/* L'interruttore "dividi per cliente". Di base spento: il menu' e' A, B, C e
-   basta. Acceso, le task dei clienti scendono nella tendina CLIENTI e sopra
-   restano solo quelle senza cliente, sempre per rank. Si ricorda. */
+/* Il filtro "per cliente". Di base spento: il menu' e' A, B, C e basta.
+   Acceso, le task dei clienti scendono nei gruppi per cliente e sopra restano
+   solo quelle senza cliente, sempre per rank. Si ricorda. */
 const PERCLIENTE_KEY = 'gwork-percliente-v1';
 let perCliente = (() => {
   try { return localStorage.getItem(PERCLIENTE_KEY) === '1'; } catch (e) { return false; }
@@ -1184,27 +1181,6 @@ function trowNode(x, pick) {
   return li;
 }
 
-/* Quali clienti sono aperti nel menu'. Piu' di uno alla volta: aprendone uno
-   gli altri restano come stanno, l'elenco si allunga e si scorre. */
-let cliAperti = (() => {
-  try {
-    const v = JSON.parse(localStorage.getItem(CLIAPERTI_KEY));
-    return new Set(Array.isArray(v) ? v : []);
-  } catch (e) { return new Set(); }
-})();
-
-/* La tendina che contiene tutti i clienti. Chiusa, il menu' e' una riga sola. */
-let cliRoot = (() => {
-  try { return localStorage.getItem(CLIROOT_KEY) === '1'; } catch (e) { return false; }
-})();
-
-function salvaAperti() {
-  try {
-    localStorage.setItem(CLIAPERTI_KEY, JSON.stringify([...cliAperti]));
-    localStorage.setItem(CLIROOT_KEY, cliRoot ? '1' : '0');
-  } catch (e) {}
-}
-
 /* Tutti i clienti compaiono sempre, anche quelli senza niente dentro: l'elenco
    e' anche la mappa di chi si sta seguendo. Le task senza cliente non stanno
    qui: restano sopra, nei blocchi per rank. */
@@ -1213,11 +1189,12 @@ function gruppiCliente(list) {
     .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byRank) }));
 }
 
-/* Il menu'. Di base A, B, C: tutte le task del serbatoio, per rank. Con
-   "dividi per cliente" le task dei clienti scendono nella tendina CLIENTI, un
-   gruppo per cliente, e sopra restano per rank solo quelle senza cliente. Con
-   "mostra anche le schedulate" entrano pure quelle sui giorni, col bordino
-   giallo. Il rank resta la pastiglia sulla riga e l'ordine dentro il gruppo. */
+/* Il menu': tutte le task davanti, e i due filtri le sfoltiscono. Di base A,
+   B, C: le task del serbatoio, per rank. Con "per cliente" le task dei clienti
+   scendono in un elenco piatto, un gruppo per cliente col suo conteggio, e
+   sopra restano per rank solo quelle senza cliente. Con "schedulate" entrano
+   pure quelle sui giorni, col bordino giallo. Il rank resta la pastiglia sulla
+   riga e l'ordine dentro il gruppo. */
 function paintDrawer() {
   const box = $('drawerList');
   box.textContent = '';
@@ -1233,38 +1210,19 @@ function paintDrawer() {
     box.appendChild(ul);
   }
 
-  if (!list.length && !(perCliente && cliRoot)) {
-    box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
-  }
-  if (!perCliente) { paintSync(); return; }
-
-  const gruppi = gruppiCliente(list);
-
-  {
-    const r = el('button', 'grp grpcli grproot' + (cliRoot ? ' open' : ''));
-    r.type = 'button';
-    r.dataset.root = '1';
-    r.setAttribute('aria-expanded', cliRoot ? 'true' : 'false');
-    r.appendChild(el('span', 'grpfrec', cliRoot ? '▾' : '▸'));
-    r.appendChild(el('span', 'grpnome', 'CLIENTI'));
-    box.appendChild(r);
+  if (!perCliente) {
+    if (!list.length) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+    paintSync();
+    return;
   }
 
-  for (const o of cliRoot ? gruppi : []) {
-    const open = cliAperti.has(o.g.k);
-    const h = el('button', 'grp grpcli grpfiglio' + (open ? ' open' : ''));
-    h.type = 'button';
-    h.dataset.cli = o.g.k;
-    h.setAttribute('aria-expanded', open ? 'true' : 'false');
-    h.appendChild(el('span', 'grpfrec', open ? '▾' : '▸'));
+  for (const o of gruppiCliente(list)) {
+    const h = el('p', 'grp grpcli');
     h.appendChild(el('span', 'grpnome', o.g.nome));
     if (o.g.tag) h.appendChild(el('span', 'grptag', o.g.tag));
+    h.appendChild(el('span', 'grpnum', String(o.tasks.length)));
     box.appendChild(h);
-    if (!open) continue;
-    if (!o.tasks.length) {
-      box.appendChild(el('p', 'vuoto vuotocli', tutte ? 'Nessuna task' : 'Niente nel serbatoio'));
-      continue;
-    }
+    if (!o.tasks.length) continue;
     const ul = el('ul', 'trows');
     for (const x of o.tasks) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
@@ -1275,35 +1233,24 @@ function paintDrawer() {
 $('menuBtn').addEventListener('click', () => openMenu(true));
 $('chiudiMenu').addEventListener('click', () => openMenu(false));
 $('velo').addEventListener('click', () => openMenu(false));
-$('tutte').addEventListener('change', e => { tutte = e.target.checked; paintDrawer(); });
-$('perCliente').checked = perCliente;
-$('perCliente').addEventListener('change', e => {
-  perCliente = e.target.checked;
-  try { localStorage.setItem(PERCLIENTE_KEY, perCliente ? '1' : '0'); } catch (e2) {}
+/* i due box dei filtri: un tocco accende, un altro spegne */
+$('tutte').addEventListener('click', () => {
+  tutte = !tutte;
+  $('tutte').setAttribute('aria-pressed', tutte ? 'true' : 'false');
+  paintDrawer();
+});
+$('perCliente').setAttribute('aria-pressed', perCliente ? 'true' : 'false');
+$('perCliente').addEventListener('click', () => {
+  perCliente = !perCliente;
+  $('perCliente').setAttribute('aria-pressed', perCliente ? 'true' : 'false');
+  try { localStorage.setItem(PERCLIENTE_KEY, perCliente ? '1' : '0'); } catch (e) {}
   paintDrawer();
 });
 $('nuova').addEventListener('click', () => openEditor(null));
 $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
-/* Le testate si aprono e si chiudono; tutta la riga di una task apre l'editor:
-   i tre puntini sono il segnale, non l'unico posto. La riga CLIENTI ha tutte e
-   due le classi, quindi grproot va guardata prima di grpcli. */
+/* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
 $('drawerList').addEventListener('click', ev => {
-  const root = ev.target.closest('button.grproot');
-  if (root) {
-    cliRoot = !cliRoot;
-    salvaAperti();
-    paintDrawer();
-    return;
-  }
-  const g = ev.target.closest('button.grpcli');
-  if (g) {
-    const k = g.dataset.cli;
-    if (cliAperti.has(k)) cliAperti.delete(k); else cliAperti.add(k);
-    salvaAperti();
-    paintDrawer();
-    return;
-  }
   const li = ev.target.closest('.trow[data-task]');
   if (li) openEditor(li.dataset.task);
 });
