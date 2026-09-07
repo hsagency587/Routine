@@ -1403,12 +1403,14 @@ function rememberSha(sha) {
   tstore.known = [sha].concat(tstore.known.filter(x => x !== sha)).slice(0, 4);
 }
 
+/* Due bottoni, uno stato: in alto nella pagina e in testa al menu'. */
 function paintSalva() {
-  const b = $('salva');
-  b.hidden = !tstore.dirty;
-  b.disabled = salvando;
-  b.classList.toggle('err', !!salvaErr);
-  b.textContent = salvando ? 'Salvo…' : salvaErr ? 'Salva — ' + salvaErr : 'Salva';
+  for (const b of [$('salva'), $('salvaMenu')]) {
+    b.hidden = !tstore.dirty;
+    b.disabled = salvando;
+    b.classList.toggle('err', !!salvaErr);
+    b.textContent = salvando ? 'Salvo…' : salvaErr ? 'Salva — ' + salvaErr : 'Salva';
+  }
 }
 
 function paintSync(msg, err) {
@@ -1559,6 +1561,7 @@ function salvagente() {
 }
 
 $('salva').addEventListener('click', () => pushTasks());
+$('salvaMenu').addEventListener('click', () => pushTasks());
 
 /* ---------------------------------------------------------- avviamento --- */
 
