@@ -109,7 +109,9 @@
 <!-- Un editor solo, per creare e per modificare. -->
 <dialog class="chiusura" id="editor" aria-labelledby="editorTit">
   <form method="dialog" class="chiusura-box" id="editorForm">
-    <h2 class="chiusura-tit" id="editorTit">Task</h2>
+    <!-- il fuoco all'apertura va sul titolo, non sul campo Nome: cosi' la
+         tastiera non salta su da sola, si apre solo toccando un campo -->
+    <h2 class="chiusura-tit" id="editorTit" tabindex="-1" autofocus>Task</h2>
     <!-- per un evento del calendario: giorno e orario, in sola lettura -->
     <p class="chiusura-day" id="tEvento" hidden></p>
 
