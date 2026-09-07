@@ -1373,10 +1373,47 @@ function dayChoices(current) {
   const t0 = today();
   const out = [{ k: '', lab: 'Non schedulata' }];
   [['Oggi', 0], ['Domani', 1], ['Dopodomani', 2]].forEach(p => out.push({ k: dayKey(shift(t0, p[1])), lab: p[0] }));
-  if (current && !out.some(o => o.k === current)) {
+  /* un giorno lontano lo mostra il chip "Altro"; qui entra solo un giorno che
+     non sta in nessuna delle due liste, per esempio uno gia' passato */
+  if (current && !out.some(o => o.k === current) && giorniLontani().indexOf(current) < 0) {
     out.push({ k: current, lab: fmtDate.format(new Date(current + 'T00:00:00')) });
   }
   return out;
+}
+
+/* I giorni da "fra 3" a "fra 7": gli ultimi cinque della finestra. */
+const giorniLontani = () => { const t0 = today(); return [3, 4, 5, 6, 7].map(n => dayKey(shift(t0, n))); };
+
+/* Il quarto chip del giorno: "Altro" apre il pannello coi giorni lontani;
+   scelto uno, il chip mostra la data e resta acceso. */
+function chipAltro() {
+  const lontano = giorniLontani().indexOf(ed.giorno) >= 0;
+  const b = el('button', 'chip chip-altro' + (lontano ? ' sel' : ''));
+  b.type = 'button';
+  b.dataset.v = 'altro';
+  b.setAttribute('aria-haspopup', 'listbox');
+  b.setAttribute('aria-expanded', 'false');
+  b.appendChild(el('span', null, lontano ? fmtDate.format(new Date(ed.giorno + 'T00:00:00')) : 'Altro'));
+  b.appendChild(el('span', 'chip-frec'));
+  $('tGiorno').appendChild(b);
+}
+
+function listaGiorni() {
+  const ul = $('tGiornoLista');
+  ul.hidden = true;
+  ul.textContent = '';
+  giorniLontani().forEach((k, i) => {
+    const b = el('button', 'tvoce' + (k === ed.giorno ? ' sel' : ''));
+    b.type = 'button';
+    b.dataset.v = k;
+    b.setAttribute('role', 'option');
+    b.setAttribute('aria-selected', k === ed.giorno ? 'true' : 'false');
+    b.appendChild(el('span', null, 'fra ' + (i + 3) + ' giorni'));
+    b.appendChild(el('span', 'tdata', fmtDate.format(new Date(k + 'T00:00:00'))));
+    const li = el('li', '');
+    li.appendChild(b);
+    ul.appendChild(li);
+  });
 }
 
 /* Le tendine: stessa forma di chips(), ma un bottone che mostra la scelta e
@@ -1418,6 +1455,8 @@ function paintEditor() {
   tendina($('tCliente'), [{ k: '', lab: 'Nessuno' }]
           .concat(CLIENTI.map(c => ({ k: c.id, lab: c.nome }))), ed.cliente || '');
   chips($('tGiorno'), dayChoices(ed.giorno), ed.giorno || '');
+  chipAltro();
+  listaGiorni();
   const sched = !!ed.giorno;
   $('tGwsLab').hidden = !sched;
   $('tGws').hidden = !sched;
@@ -1478,13 +1517,28 @@ $('editorForm').addEventListener('click', ev => {
   /* la tendina del cliente: una voce sceglie, il bottone apre e chiude il
      pannello, un tocco in qualunque altro punto lo chiude */
   const voce = ev.target.closest('button.tvoce');
-  if (voce) { ed.cliente = voce.dataset.v || null; paintEditor(); return; }
-  const lista = $('tClienteLista');
-  const apri = !!ev.target.closest('.tendina-btn') && lista.hidden;
-  lista.hidden = !apri;
-  $('tClienteBtn').setAttribute('aria-expanded', apri ? 'true' : 'false');
+  if (voce) {
+    if (voce.closest('#tGiornoLista')) {
+      ed.giorno = voce.dataset.v;
+      if (ed.gws == null) ed.gws = 0;
+    } else {
+      ed.cliente = voce.dataset.v || null;
+    }
+    paintEditor();
+    return;
+  }
+  /* due pannelli, stessa regola: il suo bottone apre e chiude, un tocco
+     altrove chiude. Aprirne uno chiude l'altro. */
+  const pannelli = [['tClienteLista', '.tendina-btn', $('tClienteBtn')],
+                    ['tGiornoLista', '.chip-altro', $('tGiorno').querySelector('.chip-altro')]];
+  for (const p of pannelli) {
+    const l = $(p[0]);
+    const apri = !!ev.target.closest(p[1]) && l.hidden;
+    l.hidden = !apri;
+    if (p[2]) p[2].setAttribute('aria-expanded', apri ? 'true' : 'false');
+  }
   const b = ev.target.closest('button.chip');
-  if (!b) return;
+  if (!b || b.classList.contains('chip-altro')) return;
   const v = b.dataset.v;
   const box = b.parentNode.id;
   if (box === 'tRank') ed.rank = v;
