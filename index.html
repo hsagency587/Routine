@@ -92,6 +92,12 @@
       <svg class="filtro-ico filtro-tratto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
       <span>Schedulate</span>
     </button>
+    <!-- Calendar: solo l'icona. Accende gli eventi del calendario a cui si e`
+         dato un cliente. -->
+    <button type="button" class="filtro filtro-solo" id="calendar" aria-pressed="false"
+            aria-label="Eventi del calendario assegnati a un cliente">
+      <svg class="filtro-ico filtro-tratto" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect class="filtro-pieno" x="12.5" y="12.5" width="4.5" height="4.5" rx="1"/></svg>
+    </button>
   </div>
   <div class="drawer-list" id="drawerList"></div>
   <div class="drawer-foot">
@@ -104,15 +110,20 @@
 <dialog class="chiusura" id="editor" aria-labelledby="editorTit">
   <form method="dialog" class="chiusura-box" id="editorForm">
     <h2 class="chiusura-tit" id="editorTit">Task</h2>
+    <!-- per un evento del calendario: giorno e orario, in sola lettura -->
+    <p class="chiusura-day" id="tEvento" hidden></p>
 
-    <label class="commento-lab" for="tNome">Nome</label>
-    <input class="campo" id="tNome" type="text" required maxlength="120" autocomplete="off">
+    <!-- i campi di una task: per un evento del calendario stanno nascosti -->
+    <div id="tCampiTask">
+      <label class="commento-lab" for="tNome">Nome</label>
+      <input class="campo" id="tNome" type="text" required maxlength="120" autocomplete="off">
 
-    <label class="commento-lab" for="tDesc">Descrizione</label>
-    <textarea class="commento" id="tDesc" rows="3"></textarea>
+      <label class="commento-lab" for="tDesc">Descrizione</label>
+      <textarea class="commento" id="tDesc" rows="3"></textarea>
 
-    <p class="commento-lab">Rank</p>
-    <div class="chips" id="tRank"></div>
+      <p class="commento-lab">Rank</p>
+      <div class="chips" id="tRank"></div>
+    </div>
 
     <p class="commento-lab" id="tClienteLab">Cliente</p>
     <div class="tendina" id="tCliente">
@@ -121,11 +132,13 @@
       <ul class="tendina-lista" id="tClienteLista" role="listbox" hidden></ul>
     </div>
 
-    <p class="commento-lab">Giorno</p>
-    <div class="chips" id="tGiorno"></div>
+    <div id="tCampiGiorno">
+      <p class="commento-lab">Giorno</p>
+      <div class="chips" id="tGiorno"></div>
 
-    <p class="commento-lab" id="tGwsLab">Sessione</p>
-    <div class="chips" id="tGws"></div>
+      <p class="commento-lab" id="tGwsLab">Sessione</p>
+      <div class="chips" id="tGws"></div>
+    </div>
 
     <div class="chiusura-btn">
       <button type="button" class="btn btn-del" id="tElimina">Elimina</button>

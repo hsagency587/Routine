@@ -481,6 +481,15 @@ function eventNode(e, on) {
     bar.appendChild(b);
   }
 
+  /* i tre puntini: all'evento si puo' dare un cliente, e basta */
+  if (isEditable(viewKey)) {
+    const m = el('button', 'more', '⋯');
+    m.type = 'button';
+    m.dataset.evento = e.id;
+    m.setAttribute('aria-label', 'Assegna un cliente');
+    bar.appendChild(m);
+  }
+
   li.appendChild(bar);
 
   if (e.desc) {
@@ -903,6 +912,9 @@ $('list').addEventListener('click', ev => {
   const more = ev.target.closest('button.more[data-task]');
   if (more) { openEditor(more.dataset.task); return; }
 
+  const evm = ev.target.closest('button.more[data-evento]');
+  if (evm) { openEvento(evm.dataset.evento); return; }
+
   const plus = ev.target.closest('button.plus[data-gws]');
   if (plus) { openPesca(+plus.dataset.gws); return; }
 
@@ -1038,6 +1050,11 @@ try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente tok
 const newId    = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const findTask = id => tstore.tasks.find(x => x.id === id) || null;
 const byRank   = (a, b) => a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : a.nome.localeCompare(b.nome);
+/* Nel menu' gli eventi del calendario vengono prima di tutto, in ordine di
+   giorno e ora; poi le task per rank. */
+const byMenu   = (a, b) => (a.evento ? 0 : 1) - (b.evento ? 0 : 1)
+  || (a.evento && b.evento ? (a.giorno + a.ora).localeCompare(b.giorno + b.ora) : 0)
+  || byRank(a, b);
 
 /* Si schedula su oggi, domani e dopodomani. Ieri no. */
 const canSchedule = k => isEditable(k) && k >= dayKey(today());
@@ -1046,18 +1063,27 @@ const canSchedule = k => isEditable(k) && k >= dayKey(today());
    forma attesa. Quello che non torna si ripulisce, non si scarta. */
 function validTask(x) {
   if (!x || typeof x !== 'object' || typeof x.id !== 'string' || typeof x.nome !== 'string') return null;
+  /* Un evento del calendario a cui si e' dato un cliente: sta nel file come
+     una task di rank A, col giorno e l'orario di Google. Senza cliente o senza
+     giorno non ha senso, e non c'e'. */
+  const evento = typeof x.evento === 'string' && x.evento ? x.evento : null;
+  const cliente = CLIENTI.some(c => c.id === x.cliente) ? x.cliente : null;
   const gws = Number.isInteger(x.gws) && x.gws >= 0 && x.gws <= 5 ? x.gws : null;
-  const giorno = typeof x.giorno === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.giorno) && gws != null ? x.giorno : null;
-  return {
+  const giorno = typeof x.giorno === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.giorno)
+                 && (gws != null || evento) ? x.giorno : null;
+  if (evento && (!giorno || !cliente)) return null;
+  const out = {
     id:     x.id,
     nome:   x.nome,
     desc:   typeof x.desc === 'string' ? x.desc : '',
-    rank:   RANKS.indexOf(x.rank) >= 0 ? x.rank : 'B',
-    cliente: CLIENTI.some(c => c.id === x.cliente) ? x.cliente : null,
+    rank:   evento ? 'A' : RANKS.indexOf(x.rank) >= 0 ? x.rank : 'B',
+    cliente: cliente,
     giorno: giorno,
-    gws:    giorno ? gws : null,
+    gws:    giorno && !evento ? gws : null,
     creata: typeof x.creata === 'string' ? x.creata : ''
   };
+  if (evento) { out.evento = evento; out.ora = typeof x.ora === 'string' ? x.ora : ''; }
+  return out;
 }
 
 const sameTasks = (a, b) => JSON.stringify((a || []).map(validTask)) === JSON.stringify((b || []).map(validTask));
@@ -1082,6 +1108,12 @@ function tidyTasks() {
   let changed = false;
 
   tstore.tasks = tstore.tasks.filter(x => {
+    /* un evento del calendario vive quanto la finestra dei quattro giorni */
+    if (x.evento) {
+      if (win.indexOf(x.giorno) >= 0) return true;
+      changed = true;
+      return false;
+    }
     if (!x.giorno) return true;
     if (dayChecks(x.giorno)[x.id]) {
       if (win.indexOf(x.giorno) >= 0) return true;
@@ -1126,6 +1158,14 @@ let perCliente = (() => {
   try { return localStorage.getItem(PERCLIENTE_KEY) === '1'; } catch (e) { return false; }
 })();
 
+/* Il filtro "Calendar": acceso, gli eventi del calendario a cui si e' dato un
+   cliente entrano nel menu', con giorno e ora, primi fra i rank A. Spento,
+   nel menu' non esistono: stanno gia' nella giornata. Si ricorda. */
+const CALENDAR_KEY = 'gwork-calendar-v1';
+let calendar = (() => {
+  try { return localStorage.getItem(CALENDAR_KEY) === '1'; } catch (e) { return false; }
+})();
+
 function openMenu(on) {
   $('drawer').classList.toggle('open', on);
   $('velo').hidden = !on;
@@ -1163,12 +1203,12 @@ function whenText(x) {
             : x.giorno === dayKey(shift(t0, 2))  ? 'dopodomani'
             : x.giorno === dayKey(shift(t0, -1)) ? 'ieri'
             : fmtDate.format(new Date(x.giorno + 'T00:00:00'));
-  return lab + ' · GWS ' + (x.gws + 1);
+  return lab + ' · ' + (x.evento ? x.ora : 'GWS ' + (x.gws + 1));
 }
 
 /* Una riga del menu' (o dell'elenco da cui pescare, senza i tre puntini). */
 function trowNode(x, pick) {
-  const li = el('li', 'trow' + (x.giorno ? ' sched' : ''));
+  const li = el('li', 'trow' + (x.evento ? ' evento' : x.giorno ? ' sched' : ''));
   li.dataset.task = x.id;
   li.appendChild(el('span', 'rank r' + x.rank, x.rank));
   li.appendChild(el('span', 'tname', x.nome));
@@ -1188,7 +1228,7 @@ function trowNode(x, pick) {
    qui: restano sopra, nei blocchi per rank. */
 function gruppiCliente(list) {
   return CLIENTI.map(c => ({ k: c.id, nome: c.nome, agenzia: !!c.agenzia }))
-    .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byRank) }));
+    .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byMenu) }));
 }
 
 /* Il menu': tutte le task davanti, e i due filtri le sfoltiscono. Di base A,
@@ -1200,11 +1240,15 @@ function gruppiCliente(list) {
 function paintDrawer() {
   const box = $('drawerList');
   box.textContent = '';
-  const list = tstore.tasks.filter(x => tutte || !x.giorno);
-  const sopra = perCliente ? list.filter(x => !x.cliente) : list;
+  /* le task del serbatoio, o anche le schedulate; gli eventi del calendario
+     con un cliente entrano solo col filtro Calendar, e hanno sempre un cliente,
+     quindi nella vista per cliente stanno sotto il loro */
+  const list = tstore.tasks.filter(x => !x.evento && (tutte || !x.giorno));
+  const evs  = calendar ? tstore.tasks.filter(x => x.evento) : [];
+  const sopra = perCliente ? list.filter(x => !x.cliente) : list.concat(evs);
 
   for (const r of RANKS) {
-    const blocco = sopra.filter(x => x.rank === r).sort(byRank);
+    const blocco = sopra.filter(x => x.rank === r).sort(byMenu);
     if (!blocco.length) continue;
     box.appendChild(el('p', 'grp', 'RANK ' + r));
     const ul = el('ul', 'trows');
@@ -1213,12 +1257,12 @@ function paintDrawer() {
   }
 
   if (!perCliente) {
-    if (!list.length) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+    if (!sopra.length) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
     paintSync();
     return;
   }
 
-  for (const o of gruppiCliente(list)) {
+  for (const o of gruppiCliente(list.concat(evs))) {
     const h = el('p', 'grp grpcli');
     h.appendChild(el('span', 'grpnome', o.g.nome));
     box.appendChild(h);
@@ -1245,6 +1289,13 @@ $('perCliente').addEventListener('click', () => {
   perCliente = !perCliente;
   $('perCliente').setAttribute('aria-pressed', perCliente ? 'true' : 'false');
   try { localStorage.setItem(PERCLIENTE_KEY, perCliente ? '1' : '0'); } catch (e) {}
+  paintDrawer();
+});
+$('calendar').setAttribute('aria-pressed', calendar ? 'true' : 'false');
+$('calendar').addEventListener('click', () => {
+  calendar = !calendar;
+  $('calendar').setAttribute('aria-pressed', calendar ? 'true' : 'false');
+  try { localStorage.setItem(CALENDAR_KEY, calendar ? '1' : '0'); } catch (e) {}
   paintDrawer();
 });
 $('nuova').addEventListener('click', () => openEditor(null));
@@ -1320,20 +1371,50 @@ function paintEditor() {
 
 function openEditor(id, preset) {
   const x = id ? findTask(id) : null;
+  if (x && x.evento) {
+    ed = { id: x.id, evento: x.evento, giorno: x.giorno, nome: x.nome, ora: x.ora, cliente: x.cliente };
+    apriEditor(false);
+    return;
+  }
   ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws }
          : { id: null, rank: 'B', cliente: null,
              giorno: (preset && preset.giorno) || null,
              gws: preset && preset.gws != null ? preset.gws : null };
   if (ed.giorno && ed.gws == null) ed.gws = 0;
 
-  $('editorTit').textContent = x ? 'Modifica task' : 'Nuova task';
   $('tNome').value = x ? x.nome : '';
   $('tDesc').value = x ? x.desc : '';
-  $('tElimina').hidden = !x;
+  apriEditor(!x);
+}
+
+/* Un evento del calendario dalla giornata: si puo' solo dargli un cliente.
+   Titolo, giorno e orario sono di Google e restano in sola lettura. */
+function openEvento(eid) {
+  const k = viewKey;
+  const raw = cal && cal.days && Array.isArray(cal.days[k]) ? cal.days[k] : [];
+  const e = raw.map(prepEvent).find(v => v.id === eid);
+  if (!e) return;
+  const rec = findTask('ev:' + eid);
+  ed = { id: 'ev:' + eid, evento: eid, giorno: k, nome: e.title, ora: e.txt,
+         cliente: rec ? rec.cliente : null };
+  apriEditor(false);
+}
+
+/* La finestra, per una task o per un evento: per l'evento restano solo il
+   titolo, la riga con giorno e ora, e la tendina del cliente. */
+function apriEditor(nuova) {
+  const ev = !!ed.evento;
+  $('editorTit').textContent = ev ? ed.nome : nuova ? 'Nuova task' : 'Modifica task';
+  $('tEvento').hidden = !ev;
+  $('tEvento').textContent = ev ? whenText(ed) : '';
+  $('tCampiTask').hidden = ev;
+  $('tCampiGiorno').hidden = ev;
+  $('tNome').disabled = ev;       /* e' required: nascosto, non deve bloccare il form */
+  $('tElimina').hidden = ev || nuova;
   $('tElimina').textContent = 'Elimina';
   paintEditor();
   dlgEd.showModal();
-  if (!x) $('tNome').focus();
+  if (nuova) $('tNome').focus();
 }
 
 $('editorForm').addEventListener('click', ev => {
@@ -1360,6 +1441,23 @@ $('editorForm').addEventListener('click', ev => {
 });
 
 $('editorForm').addEventListener('submit', ev => {
+  if (ed && ed.evento) {
+    /* un evento: si scrive o si toglie solo il cliente. Con "Nessuno" la
+       riga sparisce dal file, l'evento resta nella giornata com'era. */
+    let x = findTask(ed.id);
+    const prima = x ? x.cliente : null;
+    if (ed.cliente) {
+      if (!x) { x = { id: ed.id, creata: new Date().toISOString() }; tstore.tasks.push(x); }
+      x.evento = ed.evento; x.nome = ed.nome; x.ora = ed.ora; x.desc = '';
+      x.rank = 'A'; x.cliente = ed.cliente; x.giorno = ed.giorno; x.gws = null;
+    } else if (x) {
+      tstore.tasks = tstore.tasks.filter(t => t.id !== ed.id);
+    }
+    const cambiato = prima !== ed.cliente;
+    ed = null;
+    if (cambiato) { touch(); render(); paintDrawer(); }
+    return;
+  }
   const nome = $('tNome').value.trim();
   if (!nome) {
     /* soli spazi: required passa, ma il dialogo resta aperto e niente si perde */
