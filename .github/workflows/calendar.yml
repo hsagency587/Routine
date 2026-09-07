@@ -186,6 +186,10 @@ jobs:
 
           function collect(id, ev, start, end) {
             if (String(ev.component.getFirstPropertyValue('status') || '').toUpperCase() === 'CANCELLED') return;
+            /* Un evento cancellato su Google resta nel feed ancora per ore,
+               svuotato del titolo e SENZA STATUS:CANCELLED: si scarta anche
+               lui, altrimenti in pagina resta una fascia oraria senza nome. */
+            if (!String(ev.summary || '').trim()) return;
             const key = romeDayKey(start);
             if (keys.indexOf(key) < 0) return;
             bucket.push({
