@@ -23,9 +23,11 @@ const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/
 const RANKS        = ['A', 'B', 'C'];
 /* I clienti su cui possono stare le task. L'id e' quello che resta scritto
    dentro le task gia' fatte: non si cambia mai. Il nome invece si corregge
-   quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. */
+   quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. Le
+   agenzie mie portano `agenzia: true`: il loro conteggio nel menu' e' in oro
+   invece che in verde. */
 const CLIENTI = [
-  { id: 'hs-agency',    nome: 'HS-Agency', tag: 'My Agency' },
+  { id: 'hs-agency',    nome: 'HS-Agency', agenzia: true },
   { id: 'arbogreen',    nome: 'Arbogreen' },
   { id: 'bergamaschi',  nome: 'Bergamaschi' },
   { id: 'di-nucci',     nome: 'Di-Nucci' },
@@ -1185,7 +1187,7 @@ function trowNode(x, pick) {
    e' anche la mappa di chi si sta seguendo. Le task senza cliente non stanno
    qui: restano sopra, nei blocchi per rank. */
 function gruppiCliente(list) {
-  return CLIENTI.map(c => ({ k: c.id, nome: c.nome, tag: c.tag }))
+  return CLIENTI.map(c => ({ k: c.id, nome: c.nome, agenzia: !!c.agenzia }))
     .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byRank) }));
 }
 
@@ -1219,10 +1221,9 @@ function paintDrawer() {
   for (const o of gruppiCliente(list)) {
     const h = el('p', 'grp grpcli');
     h.appendChild(el('span', 'grpnome', o.g.nome));
-    if (o.g.tag) h.appendChild(el('span', 'grptag', o.g.tag));
-    h.appendChild(el('span', 'grpnum', String(o.tasks.length)));
     box.appendChild(h);
-    if (!o.tasks.length) continue;
+    if (!o.tasks.length) continue;   /* niente numero: lo zero non si legge */
+    h.appendChild(el('span', 'grpnum' + (o.g.agenzia ? ' oro' : ''), String(o.tasks.length)));
     const ul = el('ul', 'trows');
     for (const x of o.tasks) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
