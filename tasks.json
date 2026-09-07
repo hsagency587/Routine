@@ -58,6 +58,26 @@
       "cliente": "di-nucci",
       "giorno": "2026-09-09",
       "gws": null
+    },
+    {
+      "id": "tmtrnzuf0vcu3",
+      "creata": "2026-09-07T19:59:48.156Z",
+      "nome": "Finire Design",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-08",
+      "gws": 1
+    },
+    {
+      "id": "tmtro0hk6j3jp",
+      "creata": "2026-09-07T20:00:18.150Z",
+      "nome": "File di confronto per Giorgia",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-08",
+      "gws": 1
     }
   ]
 }
