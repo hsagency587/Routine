@@ -60,7 +60,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
   padding:var(--s2) var(--s3);
   padding-top:calc(var(--s2) + env(safe-area-inset-top));
 }
-.top.has-siren{padding-left:56px}
+/* con la sirena accesa si sposta solo la riga del battito, che le sta a
+   fianco: il giorno, la barra e i numeri restano dove sono */
+.top.has-siren .bar{margin-left:44px}
 
 .siren{
   position:absolute;
