@@ -57,10 +57,10 @@ const ROUTINE = [
     { id: 'sveglia-fascia',       t: 'FASCIA DAILY ROUTINE' }
   ]},
   { id: 'fireblood', t: 'FIREBLOOD' },
-  { id: 'caffe-1',   t: 'CAFFÈ' },
   { id: 'gws1', t: '1ST G WORK SESSION', gws: 0 },
-  { id: 'spuntino-formaggio', t: 'SPUNTINO FORMAGGIO' },
+  { id: 'caffe-1',   t: 'CAFFÈ' },
   { id: 'gws2', t: '2ND G WORK SESSION', gws: 1 },
+  { id: 'spuntino-formaggio', t: 'SPUNTINO FORMAGGIO' },
   { id: 'gws3', t: '3RD G WORK SESSION', gws: 2 },
   { id: 'workout', t: 'WORKOUT',
     choice: [{ id: 'workout-full', t: 'FULL' }, { id: 'workout-med', t: 'MED' }],
