@@ -283,12 +283,13 @@ function childState(t, c, evs) {
   return { total, done };
 }
 
-/* Spuntata la tappa, il blocco vale completo: le figlie rimaste indietro non
-   pesano piu' sul totale della giornata. */
+/* La tappa vale uno, ogni figlia vale uno. Spuntare la tappa non salda le
+   figlie: quelle rimaste indietro restano non fatte, e il 100% arriva solo
+   quando e' fatto tutto. Cosi' la chiusura registra la percentuale vera. */
 function tappaState(t, c, evs) {
   const ch = childState(t, c, evs);
   const total = ch.total + 1;
-  return { total, done: c[t.id] ? total : ch.done };
+  return { total, done: ch.done + (c[t.id] ? 1 : 0) };
 }
 
 function tally(k) {
