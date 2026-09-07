@@ -426,6 +426,8 @@ body.menu-open{overflow:hidden}
 .chiusura::backdrop{background:rgba(0,0,0,.66)}
 .chiusura-box{padding:var(--s4)}
 .chiusura-tit{margin:0;font-size:17px}
+/* il titolo prende il fuoco all'apertura al posto del campo: niente anello */
+.chiusura-tit:focus{outline:none}
 .chiusura-day{margin:2px 0 var(--s3);font-size:12px;color:var(--muted)}
 
 /* il voto si legge dal colore prima ancora che dalla cifra */

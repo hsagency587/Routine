@@ -1509,7 +1509,9 @@ function apriEditor(nuova) {
   $('tElimina').textContent = 'Elimina';
   paintEditor();
   dlgEd.showModal();
-  if (nuova) $('tNome').focus();
+  /* niente fuoco sul campo Nome: la tastiera si apre solo se si tocca un
+     campo. Il titolo ha tabindex e autofocus, e prende lui il fuoco. */
+  $('editorTit').focus({ preventScroll: true });
 }
 
 $('editorForm').addEventListener('click', ev => {
