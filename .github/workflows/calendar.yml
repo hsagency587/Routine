@@ -103,19 +103,21 @@ jobs:
           const target = process.env.CALENDAR_OUT;
           if (!target) muori('CALENDAR_OUT non e` impostato.');
 
-          /* --- la finestra: ieri, oggi, domani, dopodomani in ora di Roma --- */
+          /* --- la finestra: ieri, oggi e i sette giorni dopo, in ora di Roma.
+                 Deve coincidere con windowKeys() in app.js. --- */
 
           const nowParts = romeParts(new Date());
           const civil = Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day);
 
-          const days = [-1, 0, 1, 2].map(n => {
+          const OLTRE = 7;
+          const days = Array.from({ length: OLTRE + 2 }, (_, i) => i - 1).map(n => {
             const d = new Date(civil + n * DAY);
             return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
           });
           const keys = days.map(x => x.y + '-' + pad(x.m) + '-' + pad(x.d));
 
           const first = days[0];
-          const afterLast = new Date(civil + 3 * DAY + DAY);
+          const afterLast = new Date(civil + (OLTRE + 1) * DAY + DAY);
           const winStart = romeWall(first.y, first.m, first.d, 0, 0, 0).getTime();
           const winEnd = romeWall(
             afterLast.getUTCFullYear(), afterLast.getUTCMonth() + 1, afterLast.getUTCDate(), 0, 0, 0
@@ -292,7 +294,7 @@ jobs:
           # Il confronto ignora generatedAt: cambia per definizione a ogni giro
           # e non e` un evento del calendario. Cosi' si committa solo quando su
           # Google e` cambiato qualcosa davvero, o quando scatta la mezzanotte
-          # e la finestra dei quattro giorni scorre.
+          # e la finestra dei giorni scorre.
           if [ -s vecchio.json ] \
              && jq -S 'del(.generatedAt)' vecchio.json > prima.json 2>/dev/null \
              && jq -S 'del(.generatedAt)' "$NUOVO" > dopo.json \
