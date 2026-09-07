@@ -25,13 +25,13 @@ const RANKS        = ['A', 'B', 'C'];
    dentro le task gia' fatte: non si cambia mai. Il nome invece si corregge
    quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. */
 const CLIENTI = [
-  { id: 'hs-agency',    nome: 'HS Agency', tag: 'My Agency' },
-  { id: 'arbogreen',    nome: 'Arbogreen Service' },
-  { id: 'bergamaschi',  nome: 'Bergamaschi Giardini' },
-  { id: 'di-nucci',     nome: 'Gioielleria Di Nucci' },
+  { id: 'hs-agency',    nome: 'HS-Agency', tag: 'My Agency' },
+  { id: 'arbogreen',    nome: 'Arbogreen' },
+  { id: 'bergamaschi',  nome: 'Bergamaschi' },
+  { id: 'di-nucci',     nome: 'Di-Nucci' },
   { id: 'longkai',      nome: 'Longkai' },
-  { id: 'manuela-lovo', nome: 'Manuela Lovo Fotografa' },
-  { id: 'omnia',        nome: 'Omnia Ristrutturazioni' }
+  { id: 'manuela-lovo', nome: 'Manuela-Lovo' },
+  { id: 'omnia',        nome: 'Omnia' }
 ];
 /* i clienti aperti nel menu': restano aperti fra un'apertura e l'altra */
 const CLIAPERTI_KEY = 'gwork-clientiaperti-v1';
