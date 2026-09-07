@@ -110,8 +110,12 @@
     <p class="commento-lab">Rank</p>
     <div class="chips" id="tRank"></div>
 
-    <label class="commento-lab" for="tCliente">Cliente</label>
-    <select class="campo tendina" id="tCliente"></select>
+    <p class="commento-lab" id="tClienteLab">Cliente</p>
+    <div class="tendina" id="tCliente">
+      <button type="button" class="campo tendina-btn" id="tClienteBtn"
+              aria-haspopup="listbox" aria-expanded="false" aria-labelledby="tClienteLab tClienteBtn"></button>
+      <ul class="tendina-lista" id="tClienteLista" role="listbox" hidden></ul>
+    </div>
 
     <p class="commento-lab">Giorno</p>
     <div class="chips" id="tGiorno"></div>

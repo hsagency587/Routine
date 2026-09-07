@@ -1304,16 +1304,26 @@ function dayChoices(current) {
   return out;
 }
 
-/* Le tendine: stessa forma di chips(), ma in un <select>. Occupano una riga
-   sola anche quando le voci sono tante. */
+/* Le tendine: stessa forma di chips(), ma un bottone che mostra la scelta e
+   apre un pannello con le voci. Occupano una riga sola anche quando le voci
+   sono tante. Ogni ridisegno le lascia chiuse. */
 function tendina(box, items, sel) {
-  box.textContent = '';
+  const btn = box.querySelector('.tendina-btn');
+  const ul  = box.querySelector('.tendina-lista');
+  const cur = items.find(it => it.k === sel) || items[0];
+  btn.textContent = cur.lab;
+  btn.setAttribute('aria-expanded', 'false');
+  ul.hidden = true;
+  ul.textContent = '';
   for (const it of items) {
-    const o = document.createElement('option');
-    o.value = it.k;
-    o.textContent = it.lab;
-    if (it.k === sel) o.selected = true;
-    box.appendChild(o);
+    const b = el('button', 'tvoce' + (it.k === sel ? ' sel' : ''), it.lab);
+    b.type = 'button';
+    b.dataset.v = it.k;
+    b.setAttribute('role', 'option');
+    b.setAttribute('aria-selected', it.k === sel ? 'true' : 'false');
+    const li = el('li', '');
+    li.appendChild(b);
+    ul.appendChild(li);
   }
 }
 
@@ -1357,8 +1367,17 @@ function openEditor(id, preset) {
 }
 
 $('editorForm').addEventListener('click', ev => {
+  if (!ed) return;
+  /* la tendina del cliente: una voce sceglie, il bottone apre e chiude il
+     pannello, un tocco in qualunque altro punto lo chiude */
+  const voce = ev.target.closest('button.tvoce');
+  if (voce) { ed.cliente = voce.dataset.v || null; paintEditor(); return; }
+  const lista = $('tClienteLista');
+  const apri = !!ev.target.closest('.tendina-btn') && lista.hidden;
+  lista.hidden = !apri;
+  $('tClienteBtn').setAttribute('aria-expanded', apri ? 'true' : 'false');
   const b = ev.target.closest('button.chip');
-  if (!b || !ed) return;
+  if (!b) return;
   const v = b.dataset.v;
   const box = b.parentNode.id;
   if (box === 'tRank') ed.rank = v;
@@ -1368,12 +1387,6 @@ $('editorForm').addEventListener('click', ev => {
     ed.gws = ed.giorno ? (ed.gws == null ? 0 : ed.gws) : null;
   }
   paintEditor();
-});
-
-/* La tendina del cliente. */
-$('editorForm').addEventListener('change', ev => {
-  if (!ed) return;
-  if (ev.target.id === 'tCliente') { ed.cliente = ev.target.value || null; paintEditor(); }
 });
 
 $('editorForm').addEventListener('submit', ev => {
