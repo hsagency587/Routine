@@ -1135,6 +1135,28 @@ function openMenu(on) {
   if (on) paintDrawer();
 }
 
+/* Sul telefono il menu' si apre con uno swipe verso sinistra e si chiude con
+   uno verso destra, da qualunque punto della pagina. Il gesto deve essere
+   deciso: almeno 60px in orizzontale e piu' orizzontale che verticale, cosi'
+   lo scorrimento delle liste non lo scatena. Con un dialogo aperto niente:
+   il dito sta lavorando li' dentro. */
+let swipe = null;
+document.addEventListener('touchstart', e => {
+  swipe = e.touches.length === 1 && !document.querySelector('dialog[open]')
+        ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+}, { passive: true });
+document.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!swipe) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
+  swipe = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  const aperto = $('drawer').classList.contains('open');
+  if (dx < 0 && !aperto) openMenu(true);
+  else if (dx > 0 && aperto) openMenu(false);
+}, { passive: true });
+
 function whenText(x) {
   const t0 = today();
   const lab = x.giorno === dayKey(t0)            ? 'oggi'
