@@ -81,14 +81,18 @@
     <button type="button" class="plus" id="nuova" aria-label="Nuova task">+</button>
     <button type="button" class="chiudi" id="chiudiMenu" aria-label="Chiudi il menù">×</button>
   </div>
-  <label class="switch">
-    <input type="checkbox" id="tutte">
-    <span>Mostra anche le schedulate</span>
-  </label>
-  <label class="switch">
-    <input type="checkbox" id="perCliente">
-    <span>Dividi per cliente</span>
-  </label>
+  <!-- I due filtri, mezzo box a testa. Si sommano: si puo' essere per cliente
+       e con le schedulate insieme. -->
+  <div class="filtri">
+    <button type="button" class="filtro" id="perCliente" aria-pressed="false">
+      <svg class="filtro-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="4.5"/><path d="M3.5 21.5c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5z"/></svg>
+      <span>Per cliente</span>
+    </button>
+    <button type="button" class="filtro" id="tutte" aria-pressed="false">
+      <svg class="filtro-ico filtro-tratto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <span>Schedulate</span>
+    </button>
+  </div>
   <div class="drawer-list" id="drawerList"></div>
   <div class="drawer-foot">
     <button type="button" class="link" id="impostazioniBtn">Impostazioni</button>
