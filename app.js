@@ -1119,6 +1119,14 @@ function riapriSessione(x) {
 
 let tutte = false;               /* l'interruttore "mostra anche le schedulate" */
 
+/* L'interruttore "dividi per cliente". Di base spento: il menu' e' A, B, C e
+   basta. Acceso, le task dei clienti scendono nella tendina CLIENTI e sopra
+   restano solo quelle senza cliente, sempre per rank. Si ricorda. */
+const PERCLIENTE_KEY = 'gwork-percliente-v1';
+let perCliente = (() => {
+  try { return localStorage.getItem(PERCLIENTE_KEY) === '1'; } catch (e) { return false; }
+})();
+
 function openMenu(on) {
   $('drawer').classList.toggle('open', on);
   $('velo').hidden = !on;
@@ -1176,26 +1184,39 @@ function salvaAperti() {
 }
 
 /* Tutti i clienti compaiono sempre, anche quelli senza niente dentro: l'elenco
-   e' anche la mappa di chi si sta seguendo. "Senza cliente" invece appare solo
-   quando ha qualcosa, altrimenti sarebbe una riga per nessuno. */
+   e' anche la mappa di chi si sta seguendo. Le task senza cliente non stanno
+   qui: restano sopra, nei blocchi per rank. */
 function gruppiCliente(list) {
   return CLIENTI.map(c => ({ k: c.id, nome: c.nome, tag: c.tag }))
-    .concat([{ k: '', nome: 'Senza cliente' }])
-    .map(g => ({ g: g, tasks: list.filter(x => (x.cliente || '') === g.k).sort(byRank) }))
-    .filter(o => o.g.k !== '' || o.tasks.length);
+    .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byRank) }));
 }
 
-/* Il menu': una riga CLIENTI che si apre, e dentro un gruppo per cliente. Di
-   base solo il serbatoio; con l'interruttore anche le schedulate, col bordino
+/* Il menu'. Di base A, B, C: tutte le task del serbatoio, per rank. Con
+   "dividi per cliente" le task dei clienti scendono nella tendina CLIENTI, un
+   gruppo per cliente, e sopra restano per rank solo quelle senza cliente. Con
+   "mostra anche le schedulate" entrano pure quelle sui giorni, col bordino
    giallo. Il rank resta la pastiglia sulla riga e l'ordine dentro il gruppo. */
 function paintDrawer() {
   const box = $('drawerList');
   box.textContent = '';
   const list = tstore.tasks.filter(x => tutte || !x.giorno);
-  let n = 0;
+  const sopra = perCliente ? list.filter(x => !x.cliente) : list;
+
+  for (const r of RANKS) {
+    const blocco = sopra.filter(x => x.rank === r).sort(byRank);
+    if (!blocco.length) continue;
+    box.appendChild(el('p', 'grp', 'RANK ' + r));
+    const ul = el('ul', 'trows');
+    for (const x of blocco) ul.appendChild(trowNode(x, false));
+    box.appendChild(ul);
+  }
+
+  if (!list.length && !(perCliente && cliRoot)) {
+    box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
+  }
+  if (!perCliente) { paintSync(); return; }
 
   const gruppi = gruppiCliente(list);
-  for (const o of gruppi) n += o.tasks.length;
 
   {
     const r = el('button', 'grp grpcli grproot' + (cliRoot ? ' open' : ''));
@@ -1226,8 +1247,6 @@ function paintDrawer() {
     for (const x of o.tasks) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
   }
-
-  if (!n && !cliRoot) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
   paintSync();
 }
 
@@ -1235,6 +1254,12 @@ $('menuBtn').addEventListener('click', () => openMenu(true));
 $('chiudiMenu').addEventListener('click', () => openMenu(false));
 $('velo').addEventListener('click', () => openMenu(false));
 $('tutte').addEventListener('change', e => { tutte = e.target.checked; paintDrawer(); });
+$('perCliente').checked = perCliente;
+$('perCliente').addEventListener('change', e => {
+  perCliente = e.target.checked;
+  try { localStorage.setItem(PERCLIENTE_KEY, perCliente ? '1' : '0'); } catch (e2) {}
+  paintDrawer();
+});
 $('nuova').addEventListener('click', () => openEditor(null));
 $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
