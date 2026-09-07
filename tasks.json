@@ -1,3 +1,13 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "tmtr3pgsdr51h",
+      "creata": "2026-09-07T10:31:51.613Z",
+      "nome": "Ordini Temu",
+      "desc": "",
+      "rank": "A",
+      "giorno": "2026-09-07",
+      "gws": 5
+    }
+  ]
 }
