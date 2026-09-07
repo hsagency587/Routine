@@ -251,7 +251,8 @@ function groupEvents(k) {
 function dayTasks(k) {
   const out = [[], [], [], [], [], []];
   for (const x of tstore.tasks) {
-    if (x.giorno === k && x.gws != null && out[x.gws]) out[x.gws].push(x);
+    if (x.giorno !== k) continue;
+    for (const s of sessioniDi(x)) if (out[s]) out[s].push(x);
   }
   for (const l of out) l.sort(byRank);
   return out;
@@ -933,6 +934,13 @@ $('list').addEventListener('change', ev => {
 
   i.closest('.row').classList.toggle('on', i.checked);
 
+  /* la stessa task in piu' sessioni: e' una spunta sola, le altre righe seguono */
+  $('list').querySelectorAll('input[data-key="' + key + '"]').forEach(o => {
+    if (o === i) return;
+    o.checked = i.checked;
+    o.closest('.row').classList.toggle('on', i.checked);
+  });
+
   /* una tappa riaperta a mano non si richiude nello stesso tocco */
   riaperta = (!i.checked && ROUTINE.some(t => t.id === key)) ? key : null;
 
@@ -1080,6 +1088,10 @@ try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente tok
 
 const newId    = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const findTask = id => tstore.tasks.find(x => x.id === id) || null;
+/* Le sessioni in cui sta una task: la prima e' `gws`, le altre stanno in
+   `altre`. Una task puo' stare in piu' sessioni dello stesso giorno: e' una
+   sola, si spunta una volta sola, ma compare e conta in ognuna. */
+const sessioniDi = x => x.gws == null ? [] : [x.gws].concat(Array.isArray(x.altre) ? x.altre : []);
 const byRank   = (a, b) => a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : a.nome.localeCompare(b.nome);
 /* Nel menu' gli eventi del calendario vengono prima di tutto, in ordine di
    giorno e ora; poi le task per rank. */
@@ -1114,6 +1126,12 @@ function validTask(x) {
     creata: typeof x.creata === 'string' ? x.creata : ''
   };
   if (evento) { out.evento = evento; out.ora = typeof x.ora === 'string' ? x.ora : ''; }
+  /* le sessioni in piu': numeri validi, senza doppioni, senza la prima */
+  if (out.gws != null && Array.isArray(x.altre)) {
+    const altre = [...new Set(x.altre.filter(n => Number.isInteger(n) && n >= 0 && n <= 5 && n !== out.gws))]
+      .sort((a, b) => a - b);
+    if (altre.length) out.altre = altre;
+  }
   return out;
 }
 
@@ -1157,7 +1175,7 @@ function tidyTasks() {
       /* il giorno la ricorda com'era, non fatta: il conteggio di ieri non cambia */
       if (!mancate[x.giorno]) mancate[x.giorno] = [];
       mancate[x.giorno].push({ nome: x.nome, rank: x.rank, gws: x.gws });
-      x.giorno = null; x.gws = null; changed = true;
+      x.giorno = null; x.gws = null; delete x.altre; changed = true;
     }
     return true;
   });
@@ -1173,8 +1191,10 @@ function tidyTasks() {
    cosi' la task si puo' spuntare e non nasce gia' contata come fatta. */
 function riapriSessione(x) {
   if (!x.giorno || x.gws == null) return;
-  const t = ROUTINE.find(r => r.gws === x.gws);
-  if (t && dayChecks(x.giorno)[t.id]) setCheck(x.giorno, t.id, false);
+  for (const s of sessioniDi(x)) {
+    const t = ROUTINE.find(r => r.gws === s);
+    if (t && dayChecks(x.giorno)[t.id]) setCheck(x.giorno, t.id, false);
+  }
 }
 
 /* ------------------------------------------------------------- menu' ---- */
@@ -1234,7 +1254,7 @@ function whenText(x) {
             : x.giorno === dayKey(shift(t0, 2))  ? 'dopodomani'
             : x.giorno === dayKey(shift(t0, -1)) ? 'ieri'
             : fmtDate.format(new Date(x.giorno + 'T00:00:00'));
-  return lab + ' · ' + (x.evento ? x.ora : 'GWS ' + (x.gws + 1));
+  return lab + ' · ' + (x.evento ? x.ora : 'GWS ' + sessioniDi(x).map(n => n + 1).join('+'));
 }
 
 /* Una riga del menu' (o dell'elenco da cui pescare, senza i tre puntini). */
@@ -1382,7 +1402,8 @@ function tendina(box, items, sel) {
 function chips(box, items, sel) {
   box.textContent = '';
   for (const it of items) {
-    const b = el('button', 'chip' + (it.k === sel ? ' sel' : ''), it.lab);
+    const on = Array.isArray(sel) ? sel.indexOf(it.k) >= 0 : it.k === sel;   /* piu' chip accesi insieme */
+    const b = el('button', 'chip' + (on ? ' sel' : ''), it.lab);
     b.type = 'button';
     b.dataset.v = it.k;
     box.appendChild(b);
@@ -1397,7 +1418,7 @@ function paintEditor() {
   const sched = !!ed.giorno;
   $('tGwsLab').hidden = !sched;
   $('tGws').hidden = !sched;
-  if (sched) chips($('tGws'), [0, 1, 2, 3, 4, 5].map(i => ({ k: String(i), lab: String(i + 1) })), String(ed.gws));
+  if (sched) chips($('tGws'), [0, 1, 2, 3, 4, 5].map(i => ({ k: String(i), lab: String(i + 1) })), sessioniDi(ed).map(String));
 }
 
 function openEditor(id, preset) {
@@ -1407,10 +1428,11 @@ function openEditor(id, preset) {
     apriEditor(false);
     return;
   }
-  ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws }
+  ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws,
+             altre: (x.altre || []).slice() }
          : { id: null, rank: 'B', cliente: null,
              giorno: (preset && preset.giorno) || null,
-             gws: preset && preset.gws != null ? preset.gws : null };
+             gws: preset && preset.gws != null ? preset.gws : null, altre: [] };
   if (ed.giorno && ed.gws == null) ed.gws = 0;
 
   $('tNome').value = x ? x.nome : '';
@@ -1463,10 +1485,19 @@ $('editorForm').addEventListener('click', ev => {
   const v = b.dataset.v;
   const box = b.parentNode.id;
   if (box === 'tRank') ed.rank = v;
-  else if (box === 'tGws') ed.gws = +v;
+  else if (box === 'tGws') {
+    /* un tocco accende, un altro spegne; l'ultima accesa non si spegne */
+    const n = +v;
+    let s = sessioniDi(ed);
+    if (s.indexOf(n) >= 0) { if (s.length > 1) s = s.filter(i => i !== n); }
+    else s.push(n);
+    s.sort((a, b) => a - b);
+    ed.gws = s[0]; ed.altre = s.slice(1);
+  }
   else if (box === 'tGiorno') {
     ed.giorno = v || null;
     ed.gws = ed.giorno ? (ed.gws == null ? 0 : ed.gws) : null;
+    if (!ed.giorno) ed.altre = [];
   }
   paintEditor();
 });
@@ -1507,7 +1538,8 @@ $('editorForm').addEventListener('submit', ev => {
      task che stava gia' su quel giorno invece puo' restarci. */
   const t0 = dayKey(today());
   if (ed.giorno && ed.giorno < t0 && ed.giorno !== x.giorno) ed.giorno = t0;
-  const mossa = !ed.id || x.giorno !== ed.giorno || x.gws !== ed.gws;
+  const mossa = !ed.id || x.giorno !== ed.giorno || x.gws !== ed.gws
+             || JSON.stringify(x.altre || []) !== JSON.stringify(ed.giorno ? ed.altre : []);
   /* cambiando giorno, o tornando nel serbatoio, la vecchia spunta non segue */
   if (x.giorno && x.giorno !== ed.giorno) setCheck(x.giorno, x.id, false);
   x.nome = nome;
@@ -1516,6 +1548,7 @@ $('editorForm').addEventListener('submit', ev => {
   x.cliente = ed.cliente;
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
+  if (ed.giorno && ed.altre.length) x.altre = ed.altre.slice(); else delete x.altre;
   /* solo una task nuova o spostata riapre la sessione: un ritocco al nome no */
   if (mossa) riapriSessione(x);
   ed = null;
@@ -1569,6 +1602,7 @@ $('pescaList').addEventListener('click', ev => {
   /* se nel frattempo il giorno mostrato e' diventato ieri, la task va su oggi */
   x.giorno = canSchedule(viewKey) ? viewKey : dayKey(today());
   x.gws = pescaGws;
+  delete x.altre;
   riapriSessione(x);
   dlgPesca.close();
   touch(); render(); paintDrawer();
