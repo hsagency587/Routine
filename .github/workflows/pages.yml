@@ -26,6 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Un app.js che non si legge farebbe morire l'app alla prima apertura,
+      # e il service worker network-first non la salverebbe. Se non passa,
+      # Pages non pubblica e il sito resta quello di prima.
+      - name: Controlla la sintassi prima di pubblicare
+        run: node --check app.js && node --check sw.js
+
       - uses: actions/configure-pages@v5
 
       - name: Prepara _site

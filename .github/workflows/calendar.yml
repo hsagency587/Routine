@@ -126,13 +126,22 @@ jobs:
           const url = process.env.GCAL_ICAL_URL;
           if (!url) muori('Il secret GCAL_ICAL_URL non e` impostato.');
 
-          let res;
-          try {
-            res = await fetch(url, { redirect: 'follow' });
-          } catch (e) {
-            muori('Download dell`iCal fallito: ' + e.message + '.');
+          /* Google ogni tanto singhiozza: tre tentativi, con una pausa che
+             cresce, prima di dichiarare il giro fallito. Cosi' un errore di un
+             secondo non finisce sul battito come un giro rosso. */
+          let res = null, errore = '';
+          for (let tentativo = 1; tentativo <= 3; tentativo++) {
+            try {
+              res = await fetch(url, { redirect: 'follow' });
+              if (res.ok) break;
+              errore = 'HTTP ' + res.status;
+            } catch (e) {
+              errore = e.message;
+            }
+            res = null;
+            if (tentativo < 3) await new Promise(r => setTimeout(r, tentativo * 5000));
           }
-          if (!res.ok) muori('Download dell`iCal fallito: HTTP ' + res.status + '.');
+          if (!res) muori('Download dell`iCal fallito dopo 3 tentativi: ' + errore + '.');
 
           const text = await res.text();
           if (!text || text.indexOf('BEGIN:VCALENDAR') < 0) {
