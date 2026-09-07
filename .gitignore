@@ -1,6 +1,17 @@
-# calendar.json non è più versionato: lo genera il workflow di deploy a ogni
-# giro e finisce solo nell'artifact pubblicato su Pages.
+# calendar.json non sta su main: vive sul branch "dati", riscritto dal workflow
+# a ogni cambio degli eventi. Qui resta ignorato per non committarne per sbaglio
+# una copia di prova.
 calendar.json
 
 # cartella di lavoro del deploy, costruita nel runner
 _site/
+
+# i mesi dello storico contengono i commenti delle giornate: restano in locale
+storico/storico-*.md
+
+# appunti che restano sul PC: promemoria di pubblicazione, diagnosi, cose da
+# ricordare. Non partono col repository. Per mandarne uno online, rinominalo.
+*.locale.md
+
+# tasks.json vive sul branch "task", scritto dall'app: su main non c'entra
+tasks.json

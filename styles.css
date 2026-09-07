@@ -11,6 +11,7 @@
   --accent:#3ddc84;
   --danger:#ff453a;
   --stale:#f5a524;
+  --giallo:#ffd60a;
 
   --radius:8px;
 
@@ -28,6 +29,8 @@
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+/* hidden vince sempre, anche su chi ha un display proprio (.chips, .commento-lab) */
+[hidden]{display:none!important}
 
 body{
   background:var(--bg);
@@ -76,14 +79,31 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
 }
 @keyframes siren-spin{to{transform:rotate(360deg)}}
 
+/* la riga alta: battito a sinistra, Salva e menu` a destra */
+.bar{display:flex;align-items:center;gap:var(--s2);margin:0 0 var(--s2)}
 .fresh{
+  flex:1;min-width:0;
   display:flex;align-items:center;gap:var(--s2);
-  margin:0 0 var(--s2);
+  margin:0;
   padding:var(--s1) var(--s2);
   border-radius:var(--radius);
   font-size:12px;color:var(--muted);
   min-height:24px;
 }
+.menu{
+  flex:0 0 auto;width:40px;height:40px;
+  border-radius:var(--radius);font-size:20px;color:var(--text-2);
+}
+.menu:active{background:var(--surface-2)}
+/* compare solo quando c'e` qualcosa da salvare; rosso quando non ci riesce */
+.salva{
+  flex:0 0 auto;min-height:36px;padding:0 var(--s3);
+  border-radius:var(--radius);
+  background:var(--accent);color:var(--bg);
+  font-size:13px;font-weight:700;
+}
+.salva:disabled{opacity:.6}
+.salva.err{background:var(--danger);color:#fff}
 .fresh::before{
   content:"";flex:0 0 auto;
   width:7px;height:7px;border-radius:50%;
@@ -93,6 +113,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
 .fresh.stale::before{background:var(--stale)}
 .fresh.down{background:rgba(255,69,58,.16);color:var(--danger);font-weight:700}
 .fresh.down::before{background:var(--danger);animation:blink 1s steps(2,end) infinite}
+/* battito non verificabile: non so, che e` diverso da e` rotto. Niente allarme */
+.fresh.muto::before{background:var(--muted)}
 @keyframes blink{50%{opacity:0}}
 
 .daybar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:var(--s2)}
@@ -152,6 +174,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
 }
 .tappa.active{box-shadow:inset 3px 0 0 var(--accent)}
 .tappa.done{opacity:.62}
+/* tappa chiusa: le figlie sono congelate come stanno, non si toccano piu' */
+.tappa.closed input[type=checkbox]:disabled{opacity:.35}
+.tappa.closed .row:not(.row-t){cursor:default}
+.tappa.closed .row:not(.row-t):active{background:none}
 
 .row{
   display:flex;align-items:center;gap:var(--s3);
@@ -226,6 +252,129 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
   font-size:12px;color:var(--muted);font-style:italic;
 }
 
+/* ---------- task ---------- */
+
+/* la riga di una sessione: la tappa a sinistra, il + a destra, fuori dalla
+   label perche' un tocco sul + non deve spuntare la tappa */
+.head{display:flex;align-items:center}
+.head .row{flex:1;min-width:0}
+.plus{
+  flex:0 0 auto;width:40px;height:40px;
+  border-radius:var(--radius);
+  font-size:22px;line-height:1;color:var(--accent);
+}
+.plus:active{background:var(--surface-2)}
+.tappa.closed .plus{display:none}   /* sessione chiusa: non ci si aggiunge piu` niente */
+
+.rank{
+  flex:0 0 auto;
+  width:20px;height:20px;border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;letter-spacing:0;
+}
+.rA{background:rgba(255,69,58,.22);color:#ff8a80}
+.rB{background:rgba(245,165,36,.2);color:var(--stale)}
+.rC{background:rgba(61,220,132,.16);color:var(--accent)}
+
+.more{
+  flex:0 0 auto;width:36px;height:36px;
+  border-radius:var(--radius);
+  color:var(--muted);font-size:18px;line-height:1;letter-spacing:1px;
+}
+.more:active{background:var(--surface-2)}
+/* lasciata indietro: e` tornata nel serbatoio, qui resta solo il ricordo */
+.ev.mancata{opacity:.55}
+.ev.mancata .row{cursor:default}
+.ev.mancata .row:active{background:none}
+
+/* ---------- menu` laterale ---------- */
+
+.velo{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55)}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;z-index:21;
+  width:min(340px,88vw);
+  display:flex;flex-direction:column;
+  background:var(--surface);
+  border-left:1px solid var(--line);
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+  transform:translateX(100%);visibility:hidden;
+  transition:transform 200ms cubic-bezier(.2,.7,.3,1),visibility 0s 200ms;
+}
+.drawer.open{transform:none;visibility:visible;transition:transform 200ms cubic-bezier(.2,.7,.3,1)}
+body.menu-open{overflow:hidden}
+
+.drawer-top{
+  display:flex;align-items:center;gap:var(--s1);
+  padding:var(--s2) var(--s2) var(--s2) var(--s4);
+  border-bottom:1px solid var(--line);
+}
+.drawer-tit{flex:1;margin:0;font-size:17px}
+.chiudi{
+  flex:0 0 auto;width:40px;height:40px;
+  border-radius:var(--radius);font-size:24px;line-height:1;color:var(--muted);
+}
+.chiudi:active{background:var(--surface-2)}
+
+.switch{
+  display:flex;align-items:center;gap:var(--s3);
+  min-height:44px;padding:0 var(--s4);
+  font-size:13px;color:var(--text-2);
+  border-bottom:1px solid var(--line);
+}
+.switch input{width:19px;height:19px;margin:0;accent-color:var(--giallo)}
+
+.drawer-list{flex:1;overflow-y:auto;padding:var(--s2) 0 var(--s4)}
+.grp{margin:0;padding:var(--s3) var(--s4) var(--s1);font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.trows{list-style:none;margin:0;padding:0}
+.trow{
+  display:flex;align-items:center;gap:var(--s3);
+  min-height:44px;padding:0 var(--s1) 0 var(--s4);
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+}
+.trow:active{background:var(--surface-2)}
+.tname{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.twhen{flex:0 0 auto;font-size:11px;color:var(--muted)}
+/* schedulata: il bordino giallo che chiedevi */
+.trow.sched{box-shadow:inset 3px 0 0 var(--giallo)}
+.vuoto{margin:0;padding:var(--s4);font-size:13px;color:var(--muted);font-style:italic}
+
+.drawer-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
+  padding:var(--s2) var(--s4);
+  border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);
+}
+.link{min-height:36px;color:var(--text-2);text-decoration:underline;text-underline-offset:3px}
+.sync{flex:1;text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync.err{color:var(--danger)}
+
+/* ---------- editor ---------- */
+
+.campo{
+  display:block;width:100%;min-height:40px;padding:0 var(--s2);
+  background:var(--surface-2);color:var(--text);
+  border:1px solid var(--line);border-radius:var(--radius);
+  font:inherit;
+}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.chip{
+  min-height:36px;padding:0 var(--s3);
+  border:1px solid var(--line);border-radius:18px;
+  background:var(--surface-2);color:var(--text-2);
+  font-size:13px;font-weight:600;
+}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn-del{flex:0 0 auto;color:var(--danger);border-color:rgba(255,69,58,.45)}
+.btn-largo{width:100%;margin-bottom:var(--s3)}
+.nota{margin:var(--s2) 0 0;font-size:12px;line-height:1.4;color:var(--muted)}
+.nota.ok{color:var(--accent)}
+.nota.err{color:var(--danger)}
+
+.pesca-list{max-height:50vh;overflow-y:auto;margin:0 calc(-1 * var(--s4))}
+.pesca-list .trow{padding-right:var(--s4)}
+
 /* ---------- piede ---------- */
 
 .foot{
@@ -233,11 +382,82 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
   padding-bottom:calc(var(--s5) + env(safe-area-inset-bottom));
   text-align:center;
 }
-.csv{
+/* scegli il mese, poi scaricalo: due pezzi dello stesso oggetto */
+.storico{display:flex;justify-content:center;gap:var(--s2)}
+.mese,.scarica{
   min-height:44px;padding:0 var(--s3);
-  font-size:12px;color:var(--muted);
-  text-decoration:underline;text-underline-offset:3px;
+  background:var(--surface);color:var(--text-2);
+  border:1px solid var(--line);border-radius:var(--radius);
+  font-size:13px;
 }
+.mese{flex:0 1 220px;min-width:0}
+.scarica{flex:0 0 auto;font-weight:600}
+.scarica:active{background:var(--surface-2);color:var(--text)}
+.mese:disabled,.scarica:disabled{opacity:.45}
+
+/* ---------- chiusura della giornata ---------- */
+
+.chiusura{
+  width:min(420px,calc(100vw - 2 * var(--s3)));
+  padding:0;
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--line);border-radius:12px;
+}
+.chiusura::backdrop{background:rgba(0,0,0,.66)}
+.chiusura-box{padding:var(--s4)}
+.chiusura-tit{margin:0;font-size:17px}
+.chiusura-day{margin:2px 0 var(--s3);font-size:12px;color:var(--muted)}
+
+/* il voto si legge dal colore prima ancora che dalla cifra */
+.voto-num{
+  margin:0;text-align:center;
+  font-size:44px;font-weight:700;line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--voto-col,var(--accent));
+}
+.voto{
+  -webkit-appearance:none;appearance:none;
+  display:block;width:100%;height:28px;margin:var(--s3) 0 0;
+  background:none;
+}
+.voto::-webkit-slider-runnable-track{
+  height:8px;border-radius:4px;
+  background:linear-gradient(90deg,var(--danger),var(--stale),var(--accent));
+}
+.voto::-moz-range-track{
+  height:8px;border-radius:4px;
+  background:linear-gradient(90deg,var(--danger),var(--stale),var(--accent));
+}
+.voto::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:26px;height:26px;margin-top:-9px;border-radius:50%;
+  background:var(--voto-col,var(--accent));border:2px solid var(--bg);
+}
+.voto::-moz-range-thumb{
+  width:26px;height:26px;border-radius:50%;
+  background:var(--voto-col,var(--accent));border:2px solid var(--bg);
+}
+.voto-scala{
+  display:flex;justify-content:space-between;
+  margin:0;font-size:11px;color:var(--muted);
+}
+
+.commento-lab{display:block;margin:var(--s4) 0 var(--s1);font-size:12px;color:var(--muted)}
+.commento{
+  display:block;width:100%;padding:var(--s2);
+  background:var(--surface-2);color:var(--text);
+  border:1px solid var(--line);border-radius:var(--radius);
+  font:inherit;resize:vertical;
+}
+
+.chiusura-btn{display:flex;gap:var(--s2);margin-top:var(--s4)}
+.btn{
+  flex:1;min-height:44px;border-radius:var(--radius);
+  background:var(--surface-2);border:1px solid var(--line);
+  font-size:14px;font-weight:600;color:var(--text-2);
+}
+.btn-ok{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.btn:active{opacity:.8}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{
