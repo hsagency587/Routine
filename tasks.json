@@ -124,6 +124,16 @@
       "cliente": "di-nucci",
       "giorno": "2026-09-08",
       "gws": 0
+    },
+    {
+      "id": "tmtt4nfn6v6v0",
+      "creata": "2026-09-08T20:33:48.786Z",
+      "nome": "Porta monete",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-09",
+      "gws": 0
     }
   ]
 }
