@@ -67,7 +67,10 @@
       "rank": "A",
       "cliente": "di-nucci",
       "giorno": "2026-09-08",
-      "gws": 1
+      "gws": 1,
+      "altre": [
+        3
+      ]
     },
     {
       "id": "tmtro0hk6j3jp",
@@ -77,7 +80,10 @@
       "rank": "A",
       "cliente": "di-nucci",
       "giorno": "2026-09-08",
-      "gws": 1
+      "gws": 1,
+      "altre": [
+        3
+      ]
     },
     {
       "id": "tmtrp1iuw5f9v",
