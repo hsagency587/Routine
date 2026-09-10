@@ -1104,6 +1104,7 @@ if (!Array.isArray(tstore.known)) tstore.known = [];
 /* i clienti stanno nel file con le task: senza, si parte dal seme */
 if (!Array.isArray(tstore.clienti)) tstore.clienti = validClienti(CLIENTI_SEME);
 if (!Array.isArray(tstore.workouts)) tstore.workouts = [];
+if (!tstore.cancellate || typeof tstore.cancellate !== 'object' || Array.isArray(tstore.cancellate)) tstore.cancellate = {};
 
 let archivio = readStore(ARCHIVIO_KEY);
 let mancate  = readStore(MANCATE_KEY);
@@ -1112,6 +1113,10 @@ let token = '';
 try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente token */ }
 
 const newId    = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+/* Ogni voce che si tocca prende l'ora: e' quello che decide chi vince quando
+   due copie si uniscono. Ogni voce che si toglie lascia la data. */
+const segna    = x => { x.mod = new Date().toISOString(); return x; };
+const cancella = id => { tstore.cancellate[id] = new Date().toISOString(); };
 const findTask = id => tstore.tasks.find(x => x.id === id) || null;
 /* L'ordine dei clienti dovunque si elenchino: le agenzie prima, poi i
    clienti, per nome; quelli nascosti con l'occhio in fondo. */
@@ -1158,6 +1163,7 @@ function validTask(x, lista) {
     gws:    giorno && !evento ? gws : null,
     creata: typeof x.creata === 'string' ? x.creata : ''
   };
+  if (typeof x.mod === 'string') out.mod = x.mod;
   if (evento) { out.evento = evento; out.ora = typeof x.ora === 'string' ? x.ora : ''; }
   /* le sessioni in piu': numeri validi, senza doppioni, senza la prima */
   if (out.gws != null && Array.isArray(x.altre)) {
@@ -1175,6 +1181,7 @@ function validCliente(c) {
   const out = { id: c.id, nome: c.nome.trim() };
   if (c.agenzia)  out.agenzia  = true;
   if (c.nascosto) out.nascosto = true;
+  if (typeof c.mod === 'string') out.mod = c.mod;
   return out;
 }
 
@@ -1209,26 +1216,67 @@ function validWorkout(w) {
   const giorni = [...new Set((Array.isArray(w.giorni) ? w.giorni : [])
     .filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort((a, b) => a - b);
   const esercizi = (Array.isArray(w.esercizi) ? w.esercizi : []).map(validEsercizio).filter(Boolean);
-  return { id: w.id, nome: w.nome.trim(), giorni: giorni, esercizi: esercizi };
+  const out = { id: w.id, nome: w.nome.trim(), giorni: giorni, esercizi: esercizi };
+  if (typeof w.mod === 'string') out.mod = w.mod;
+  return out;
 }
 
 /* Il file com'e' scritto: task, clienti e workout. Un file arrivato da fuori
    si normalizza qui, e quello locale pure, cosi' il confronto e' alla pari.
    Un file senza clienti e' di prima che ci fossero: vale il seme. */
+/* Le cancellazioni: id -> quando. Servono a unire due copie senza far
+   risorgere quello che una delle due ha tolto. Dopo sessanta giorni non
+   servono piu' e cadono. */
+function validCancellate(c) {
+  const out = {};
+  const limite = new Date(Date.now() - 60 * 86400000).toISOString();
+  if (c && typeof c === 'object' && !Array.isArray(c)) {
+    for (const id in c) if (typeof c[id] === 'string' && c[id] > limite) out[id] = c[id];
+  }
+  return out;
+}
+
 function normFile(data) {
   const clienti = data && Array.isArray(data.clienti) ? validClienti(data.clienti) : validClienti(CLIENTI_SEME);
   const tasks = data && Array.isArray(data.tasks) ? data.tasks.map(x => validTask(x, clienti)).filter(Boolean) : [];
   const workouts = data && Array.isArray(data.workouts) ? data.workouts.map(validWorkout).filter(Boolean) : [];
-  return { tasks: tasks, clienti: clienti, workouts: workouts };
+  return { tasks: tasks, clienti: clienti, workouts: workouts, cancellate: validCancellate(data && data.cancellate) };
 }
-const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts });
+const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts, cancellate: tstore.cancellate });
 const sameFile  = (a, b) => JSON.stringify(normFile(a)) === JSON.stringify(normFile(b));
 
 /* Un file letto da fuori prende il posto di quello locale. */
 function applicaFile(f) {
-  tstore.tasks    = f.tasks;
-  tstore.clienti  = f.clienti;
-  tstore.workouts = f.workouts;
+  tstore.tasks      = f.tasks;
+  tstore.clienti    = f.clienti;
+  tstore.workouts   = f.workouts;
+  tstore.cancellate = f.cancellate;
+}
+
+/* Due copie che non si conoscono — il telefono e l'online — si uniscono
+   senza perdere niente: voce per voce vince la piu' recente per `mod`, una
+   voce che sta da una parte sola resta, a meno che l'altra parte non l'abbia
+   cancellata dopo. E' la regola che impedisce a una copia rimasta indietro
+   di cancellare il lavoro fatto altrove. */
+function mergeFile(a, b) {
+  const canc = Object.assign({}, b.cancellate);
+  for (const id in a.cancellate) if (!canc[id] || a.cancellate[id] > canc[id]) canc[id] = a.cancellate[id];
+  const mod = x => x.mod || '';
+  const viva = x => !(canc[x.id] && canc[x.id] > mod(x));
+  const unisci = (la, lb) => {
+    const out = [], visti = {}, mb = {};
+    for (const y of lb) mb[y.id] = y;
+    for (const x of la) {
+      const y = mb[x.id];
+      const v = y && mod(y) > mod(x) ? y : x;
+      visti[x.id] = 1;
+      if (viva(v)) out.push(v);
+    }
+    for (const y of lb) if (!visti[y.id] && viva(y)) out.push(y);
+    return out;
+  };
+  return { tasks: unisci(a.tasks, b.tasks), clienti: unisci(a.clienti, b.clienti),
+           workouts: unisci(a.workouts, b.workouts), cancellate: canc };
 }
 
 function saveLocal() { writeStore(TASKS_KEY, tstore); }
@@ -1254,7 +1302,7 @@ function tidyTasks() {
     /* un evento del calendario vive quanto la finestra dei giorni */
     if (x.evento) {
       if (win.indexOf(x.giorno) >= 0) return true;
-      changed = true;
+      cancella(x.id); changed = true;
       return false;
     }
     if (!x.giorno) return true;
@@ -1262,14 +1310,14 @@ function tidyTasks() {
       if (win.indexOf(x.giorno) >= 0) return true;
       if (!archivio[x.giorno]) archivio[x.giorno] = [];
       archivio[x.giorno].push({ nome: x.nome, rank: x.rank, gws: x.gws });
-      changed = true;
+      cancella(x.id); changed = true;
       return false;
     }
     if (x.giorno < t0) {
       /* il giorno la ricorda com'era, non fatta: il conteggio di ieri non cambia */
       if (!mancate[x.giorno]) mancate[x.giorno] = [];
       mancate[x.giorno].push({ nome: x.nome, rank: x.rank, gws: x.gws });
-      x.giorno = null; x.gws = null; delete x.altre; changed = true;
+      x.giorno = null; x.gws = null; delete x.altre; segna(x); changed = true;
     }
     return true;
   });
@@ -1683,8 +1731,10 @@ $('editorForm').addEventListener('submit', ev => {
       if (!x) { x = { id: ed.id, creata: new Date().toISOString() }; tstore.tasks.push(x); }
       x.evento = ed.evento; x.nome = ed.nome; x.ora = ed.ora; x.desc = '';
       x.rank = 'A'; x.cliente = ed.cliente; x.giorno = ed.giorno; x.gws = null;
+      segna(x);
     } else if (x) {
       tstore.tasks = tstore.tasks.filter(t => t.id !== ed.id);
+      cancella(ed.id);
     }
     const cambiato = prima !== ed.cliente;
     ed = null;
@@ -1720,6 +1770,7 @@ $('editorForm').addEventListener('submit', ev => {
   x.giorno = ed.giorno;
   x.gws = ed.giorno ? ed.gws : null;
   if (ed.giorno && ed.altre.length) x.altre = ed.altre.slice(); else delete x.altre;
+  segna(x);
   /* solo una task nuova o spostata riapre la sessione: un ritocco al nome no */
   if (mossa) riapriSessione(x);
   ed = null;
@@ -1737,6 +1788,7 @@ $('tElimina').addEventListener('click', () => {
     const old = findTask(ed.id);
     if (old && old.giorno) setCheck(old.giorno, old.id, false);   /* niente spunte orfane */
     tstore.tasks = tstore.tasks.filter(x => x.id !== ed.id);
+    cancella(ed.id);
   }
   ed = null;
   dlgEd.close();
@@ -1822,7 +1874,7 @@ $('clientiForm').addEventListener('submit', ev => {
   }
   const c = { id: idCliente(nome), nome: nome };
   if (cTipo === 'agenzia') c.agenzia = true;
-  tstore.clienti.push(c);
+  tstore.clienti.push(segna(c));
   $('cNome').value = '';
   touch(); paintClienti(); paintDrawer();
 });
@@ -1831,16 +1883,16 @@ $('clientiForm').addEventListener('submit', ev => {
 let delCliente = null;
 
 function rimuoviCliente(c, conTask) {
-  if (conTask) {
-    for (const x of tstore.tasks) if (x.cliente === c.id && x.giorno) setCheck(x.giorno, x.id, false);
-    tstore.tasks = tstore.tasks.filter(x => x.cliente !== c.id);
-  } else {
-    /* le task restano, senza cliente. Un evento del calendario senza cliente
-       non ha piu' motivo di stare nel file: nella giornata resta comunque */
-    tstore.tasks = tstore.tasks.filter(x => !(x.evento && x.cliente === c.id));
-    for (const x of tstore.tasks) if (x.cliente === c.id) x.cliente = null;
+  const via = x => x.cliente === c.id && (conTask || x.evento);
+  for (const x of tstore.tasks) {
+    if (via(x)) { if (x.giorno) setCheck(x.giorno, x.id, false); cancella(x.id); }
+    else if (x.cliente === c.id) { x.cliente = null; segna(x); }   /* la task resta, senza cliente */
   }
+  /* un evento del calendario senza cliente non ha piu' motivo di stare nel
+     file: nella giornata resta comunque */
+  tstore.tasks = tstore.tasks.filter(x => !via(x));
   tstore.clienti = tstore.clienti.filter(k => k.id !== c.id);
+  cancella(c.id);
   delete chiusi[c.id];
   touch(); paintClienti(); render(); paintDrawer();
 }
@@ -1851,6 +1903,7 @@ $('clientiLista').addEventListener('click', ev => {
     const c = findCliente(o.dataset.cliente);
     if (!c) return;
     if (c.nascosto) delete c.nascosto; else c.nascosto = true;
+    segna(c);
     touch(); paintClienti(); paintDrawer();
     return;
   }
@@ -1910,6 +1963,7 @@ $('pescaList').addEventListener('click', ev => {
   x.giorno = canSchedule(viewKey) ? viewKey : dayKey(today());
   x.gws = pescaGws;
   delete x.altre;
+  segna(x);
   riapriSessione(x);
   dlgPesca.close();
   touch(); render(); paintDrawer();
@@ -2178,6 +2232,7 @@ $('wkEdForm').addEventListener('submit', ev => {
   w.nome = nome;
   w.giorni = wed.giorni.slice();
   w.esercizi = wed.esercizi;
+  segna(w);
   wed = null;
   touch(); paintWorkout();
 });
@@ -2189,7 +2244,10 @@ dlgWk.addEventListener('cancel', () => { wed = null; });
 $('wElimina').addEventListener('click', () => {
   const b = $('wElimina');
   if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
-  if (wed && wed.id) tstore.workouts = tstore.workouts.filter(w => w.id !== wed.id);
+  if (wed && wed.id) {
+    tstore.workouts = tstore.workouts.filter(w => w.id !== wed.id);
+    cancella(wed.id);
+  }
   wed = null;
   dlgWk.close();
   touch(); paintWorkout();
@@ -2220,9 +2278,9 @@ function openExEd(wid, i) {
 }
 
 function fineEx() {
-  const diretto = !!exd.wid;
+  const w = exd.wid ? findWorkout(exd.wid) : null;
   exd = null;
-  if (diretto) { touch(); paintWorkout(); } else paintWkEd();
+  if (w) { segna(w); touch(); paintWorkout(); } else paintWkEd();
 }
 
 $('exEdForm').addEventListener('submit', ev => {
@@ -2295,10 +2353,6 @@ async function provaToken() {
 
 let salvando = false, salvaErr = '';
 let syncMsg = '', syncErr = false;
-/* La versione online diversa dalla nostra, quando il telefono ha modifiche
-   non salvate: Salva non la sovrascrive da solo, chiede prima cosa vince.
-   { file, sha }, oppure null quando online e telefono sono d'accordo. */
-let conflitto = null;
 
 function ghHeaders() {
   const h = { Accept: 'application/vnd.github+json' };
@@ -2379,18 +2433,22 @@ async function pullTasks() {
   if (tstore.dirty) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
     if (sameFile(remote, localFile())) {
-      conflitto = null;
       rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
       fine('allineato');
-    } else {
-      /* si tiene da parte: al prossimo Salva si sceglie, non si sovrascrive */
-      conflitto = { file: remote, sha: j.sha };
-      fine('online c\'e` una versione diversa');
+      return;
     }
+    /* due copie che non si conoscono: si uniscono, senza perdere niente,
+       e Salva manda su il risultato. Se l'unione e' proprio l'online, il
+       telefono non aveva niente di suo: e' gia' allineato */
+    applicaFile(mergeFile(localFile(), remote));
+    rememberSha(j.sha);
+    tstore.dirty = !sameFile(localFile(), remote);
+    saveLocal();
+    tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
+    fine(tstore.dirty ? 'unito con l\'online: Salva per allineare' : 'allineato');
     return;
   }
 
-  conflitto = null;
   applicaFile(remote);
   rememberSha(j.sha);
   tstore.dirty = false;
@@ -2404,16 +2462,6 @@ async function pushTasks(opts) {
   opts = opts || {};
   if (!tstore.dirty || salvando) return;
   if (!token) { salvaErr = 'manca il token'; paintSalva(); paintSync('manca il token', true); return; }
-
-  /* online c'e' una versione diversa: si chiede cosa vince. Il salvagente
-     non puo' chiedere, la pagina sta morendo: lascia tutto com'e', e alla
-     riapertura Salva e' ancora li', rosso. */
-  if (conflitto && !opts.force) {
-    salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
-    if (!opts.keepalive) openConflitto();
-    return;
-  }
-  if (opts.force && conflitto) { tstore.sha = conflitto.sha; conflitto = null; }
 
   salvando = true; salvaErr = ''; salvaRetry = false;
   paintSalva();
@@ -2454,8 +2502,9 @@ async function pushTasks(opts) {
   /* sha vecchia: online e' cambiato qualcosa nel frattempo — di solito e' il
      salvagente di una chiusura precedente, arrivato senza che lo sapessimo.
      Si rilegge, e se e' la nostra stessa versione si e' gia' a posto;
-     altrimenti non si riprova alla cieca: si chiede cosa vince. */
-  if (r.status === 409 || r.status === 422) {
+     altrimenti si unisce l'online con il telefono, senza perdere niente, e
+     si riprova una volta con la sha giusta. Mai piu' "vince il telefono". */
+  if ((r.status === 409 || r.status === 422) && !opts.retry) {
     try {
       const cur = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
       if (cur.status === 404) {
@@ -2465,16 +2514,23 @@ async function pushTasks(opts) {
       }
       if (cur.ok) {
         const j = await cur.json();
+        rememberSha(j.sha);
         let data = null;
-        try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* illeggibile: si potra' solo sovrascrivere */ }
-        if (data && sameFile(data, localFile())) { rememberSha(j.sha); salvato(); return; }
-        conflitto = { file: data ? normFile(data) : null, sha: j.sha };
-        salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
-        if (!opts.keepalive && !document.hidden) openConflitto();
-        return;
+        try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* illeggibile: si scrive sopra */ }
+        if (data) {
+          const remote = normFile(data);
+          if (sameFile(remote, localFile())) { salvato(); return; }
+          applicaFile(mergeFile(localFile(), remote));
+          saveLocal();
+          tidyTasks(); render(); paintDrawer(); paintWorkout();
+        }
+        return pushTasks(Object.assign({}, opts, { retry: true }));
       }
     } catch (e) { /* si cade nell'errore qui sotto */ }
-    salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
+  }
+  if (r.status === 409 || r.status === 422) {
+    /* e' cambiato di nuovo nel frattempo: si riprova al prossimo giro */
+    salvaErr = 'conflitto online'; salvaRetry = true; paintSalva(); paintSync(salvaErr, true);
     return;
   }
 
@@ -2508,39 +2564,8 @@ function salvagente() {
    sistema la persona, riprovare sarebbe solo rumore. */
 let salvaRetry = false;
 function riprovaSalva() {
-  if (tstore.dirty && salvaRetry && !salvando && token && !conflitto) pushTasks();
+  if (tstore.dirty && salvaRetry && !salvando && token) pushTasks();
 }
-
-/* Il pop-up del conflitto: online c'e' una versione diversa da quella del
-   telefono. O si sovrascrive, o si prende quella e si buttano le proprie.
-   Annullare lascia tutto com'e': Salva resta rosso finche' non si decide. */
-const dlgConf = $('conflitto');
-
-function openConflitto() {
-  if (dlgConf.open) return;
-  /* un file illeggibile non si puo' prendere: resta solo sovrascriverlo */
-  $('confPrendi').hidden = !(conflitto && conflitto.file);
-  dlgConf.showModal();
-}
-
-$('confSovrascrivi').addEventListener('click', () => {
-  dlgConf.close();
-  pushTasks({ force: true });
-});
-
-$('confPrendi').addEventListener('click', () => {
-  dlgConf.close();
-  if (!conflitto || !conflitto.file) return;
-  applicaFile(conflitto.file);
-  rememberSha(conflitto.sha);
-  conflitto = null;
-  tstore.dirty = false; salvaErr = '';
-  saveLocal();
-  tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
-  paintSync('allineato alle ' + fmtTime.format(new Date()));
-});
-
-$('confAnnulla').addEventListener('click', () => dlgConf.close());
 
 $('salva').addEventListener('click', () => pushTasks());
 $('salvaMenu').addEventListener('click', () => pushTasks());
