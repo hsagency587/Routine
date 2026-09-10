@@ -332,8 +332,44 @@
       "giorni": [
         3
       ],
-      "esercizi": [],
-      "mod": "2026-09-10T19:34:10.294Z"
+      "esercizi": [
+        {
+          "id": "tmtvxnuawih7o",
+          "nome": "Leg stretch",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxo51uz4pn",
+          "nome": "Wall sit",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxogo1l21h",
+          "nome": "Cycle",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxorxagyvy",
+          "nome": "Swing",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxozg7vrwm",
+          "nome": "Push hand",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-10T19:42:55.817Z"
     },
     {
       "id": "tmtvxjo3b1j8k",
