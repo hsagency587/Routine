@@ -79,6 +79,10 @@
     <h2 class="drawer-tit">Menù Task</h2>
     <button type="button" class="salva" id="salvaMenu" hidden>Salva</button>
     <button type="button" class="plus" id="nuova" aria-label="Nuova task">+</button>
+    <!-- l'editor dei clienti: una persona con la matita -->
+    <button type="button" class="plus plus-ico" id="clientiBtn" aria-label="Clienti e agenzie">
+      <svg class="filtro-ico filtro-tratto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="7.5" r="4"/><path d="M3.5 21c0-4 3-7 6.5-7h1.5"/><path d="M14.5 20.5l6-6-2.5-2.5-6 6v2.5z"/></svg>
+    </button>
     <button type="button" class="chiudi" id="chiudiMenu" aria-label="Chiudi il menù">×</button>
   </div>
   <!-- I due filtri, mezzo box a testa. Si sommano: si puo' essere per cliente
@@ -150,6 +154,36 @@
       <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
     </div>
   </form>
+</dialog>
+
+<!-- L'editor dei clienti: una voce nuova sopra, l'elenco sotto. -->
+<dialog class="chiusura" id="clienti" aria-labelledby="clientiTit">
+  <div class="chiusura-box">
+    <h2 class="chiusura-tit" id="clientiTit" tabindex="-1" autofocus>Clienti</h2>
+    <form id="clientiForm">
+      <label class="commento-lab" for="cNome">Nuova voce</label>
+      <input class="campo" id="cNome" type="text" maxlength="60" autocomplete="off" placeholder="Nome">
+      <div class="chips cTipo" id="cTipo"></div>
+      <button type="submit" class="btn btn-ok btn-largo" id="cAggiungi">Aggiungi</button>
+      <p class="nota err" id="cNota" hidden></p>
+    </form>
+    <ul class="clist" id="clientiLista"></ul>
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="clientiChiudi">Chiudi</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Togliere un cliente che ha delle task: si chiede se togliere anche quelle. -->
+<dialog class="chiusura" id="clienteDel" aria-labelledby="clienteDelTit">
+  <div class="chiusura-box">
+    <h2 class="chiusura-tit" id="clienteDelTit" tabindex="-1" autofocus>Eliminare anche le task?</h2>
+    <p class="nota">Con "No" le task restano, senza cliente.</p>
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="cdNo">No</button>
+      <button type="button" class="btn btn-del" id="cdSi">Sì</button>
+    </div>
+  </div>
 </dialog>
 
 <!-- Il + della sessione: una task nuova, o una pescata dal serbatoio. -->

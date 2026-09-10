@@ -21,12 +21,12 @@ const MANCATE_KEY  = 'gwork-taskmancate-v1'; /* task lasciate indietro, giorno p
 const TASK_BRANCH  = 'task';
 const TASK_API     = 'https://api.github.com/repos/hsagency587/Routine/contents/tasks.json';
 const RANKS        = ['A', 'B', 'C'];
-/* I clienti su cui possono stare le task. L'id e' quello che resta scritto
-   dentro le task gia' fatte: non si cambia mai. Il nome invece si corregge
-   quando si vuole. Per aggiungere un cliente si aggiunge una riga qui. Le
-   agenzie mie portano `agenzia: true`: il loro conteggio nel menu' e' in oro
-   invece che in verde. */
-const CLIENTI = [
+/* I clienti di partenza. Vivono nel file con le task e si aggiungono e
+   tolgono dall'app: questa lista e' solo il seme del primo avvio, per un file
+   che ancora non li ha. L'id e' quello che resta scritto dentro le task: non
+   si cambia mai. Le agenzie mie portano `agenzia: true`: il loro conteggio
+   nel menu' e' in oro invece che in verde. */
+const CLIENTI_SEME = [
   { id: 'hs-agency',    nome: 'HS-Agency', agenzia: true },
   { id: 'arbogreen',    nome: 'Arbogreen' },
   { id: 'bergamaschi',  nome: 'Bergamaschi' },
@@ -1101,6 +1101,8 @@ dlg.addEventListener('close', () => {
 let tstore = readStore(TASKS_KEY);
 if (!Array.isArray(tstore.tasks)) tstore = { tasks: [], sha: null, dirty: false, known: [] };
 if (!Array.isArray(tstore.known)) tstore.known = [];
+/* i clienti stanno nel file con le task: senza, si parte dal seme */
+if (!Array.isArray(tstore.clienti)) tstore.clienti = validClienti(CLIENTI_SEME);
 
 let archivio = readStore(ARCHIVIO_KEY);
 let mancate  = readStore(MANCATE_KEY);
@@ -1110,6 +1112,13 @@ try { token = localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { /* niente tok
 
 const newId    = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const findTask = id => tstore.tasks.find(x => x.id === id) || null;
+/* L'ordine dei clienti dovunque si elenchino: le agenzie prima, poi i
+   clienti, per nome; quelli nascosti con l'occhio in fondo. */
+const byCliente = (a, b) => (a.nascosto ? 1 : 0) - (b.nascosto ? 1 : 0)
+  || (b.agenzia ? 1 : 0) - (a.agenzia ? 1 : 0)
+  || a.nome.localeCompare(b.nome);
+const clientiOrdinati = () => tstore.clienti.slice().sort(byCliente);
+const findCliente = id => tstore.clienti.find(c => c.id === id) || null;
 /* Le sessioni in cui sta una task: la prima e' `gws`, le altre stanno in
    `altre`. Una task puo' stare in piu' sessioni dello stesso giorno: e' una
    sola, si spunta una volta sola, ma compare e conta in ognuna. */
@@ -1126,13 +1135,14 @@ const canSchedule = k => isEditable(k) && k >= dayKey(today());
 
 /* Un file arrivato da fuori si prende con le pinze: solo campi noti, nella
    forma attesa. Quello che non torna si ripulisce, non si scarta. */
-function validTask(x) {
+function validTask(x, lista) {
+  lista = lista || tstore.clienti;
   if (!x || typeof x !== 'object' || typeof x.id !== 'string' || typeof x.nome !== 'string') return null;
   /* Un evento del calendario a cui si e' dato un cliente: sta nel file come
      una task di rank A, col giorno e l'orario di Google. Senza cliente o senza
      giorno non ha senso, e non c'e'. */
   const evento = typeof x.evento === 'string' && x.evento ? x.evento : null;
-  const cliente = CLIENTI.some(c => c.id === x.cliente) ? x.cliente : null;
+  const cliente = lista.some(c => c.id === x.cliente) ? x.cliente : null;
   const gws = Number.isInteger(x.gws) && x.gws >= 0 && x.gws <= 5 ? x.gws : null;
   const giorno = typeof x.giorno === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.giorno)
                  && (gws != null || evento) ? x.giorno : null;
@@ -1157,7 +1167,41 @@ function validTask(x) {
   return out;
 }
 
-const sameTasks = (a, b) => JSON.stringify((a || []).map(validTask)) === JSON.stringify((b || []).map(validTask));
+/* Un cliente arrivato da fuori: id e nome, e i due segni agenzia e nascosto. */
+function validCliente(c) {
+  if (!c || typeof c !== 'object' || typeof c.id !== 'string' || !c.id
+      || typeof c.nome !== 'string' || !c.nome.trim()) return null;
+  const out = { id: c.id, nome: c.nome.trim() };
+  if (c.agenzia)  out.agenzia  = true;
+  if (c.nascosto) out.nascosto = true;
+  return out;
+}
+
+/* Senza doppioni di id: il primo vince. */
+function validClienti(list) {
+  const seen = {}, out = [];
+  for (const c of (Array.isArray(list) ? list : []).map(validCliente)) {
+    if (c && !seen[c.id]) { seen[c.id] = 1; out.push(c); }
+  }
+  return out;
+}
+
+/* Il file com'e' scritto: task e clienti. Un file arrivato da fuori si
+   normalizza qui, e quello locale pure, cosi' il confronto e' alla pari. Un
+   file senza clienti e' di prima che ci fossero: vale il seme. */
+function normFile(data) {
+  const clienti = data && Array.isArray(data.clienti) ? validClienti(data.clienti) : validClienti(CLIENTI_SEME);
+  const tasks = data && Array.isArray(data.tasks) ? data.tasks.map(x => validTask(x, clienti)).filter(Boolean) : [];
+  return { tasks: tasks, clienti: clienti };
+}
+const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti });
+const sameFile  = (a, b) => JSON.stringify(normFile(a)) === JSON.stringify(normFile(b));
+
+/* Un file letto da fuori prende il posto di quello locale. */
+function applicaFile(f) {
+  tstore.tasks   = f.tasks;
+  tstore.clienti = f.clienti;
+}
 
 function saveLocal() { writeStore(TASKS_KEY, tstore); }
 
@@ -1296,13 +1340,19 @@ function trowNode(x, pick) {
   return li;
 }
 
-/* Tutti i clienti compaiono sempre, anche quelli senza niente dentro: l'elenco
-   e' anche la mappa di chi si sta seguendo. Le task senza cliente non stanno
-   qui: restano sopra, nei blocchi per rank. */
+/* I clienti con qualcosa dentro, nell'ordine di sempre: uno vuoto non compare,
+   uno nascosto con l'occhio nemmeno. La mappa di chi si segue sta nell'editor
+   dei clienti. Le task senza cliente non stanno qui: restano sopra, per rank. */
 function gruppiCliente(list) {
-  return CLIENTI.map(c => ({ k: c.id, nome: c.nome, agenzia: !!c.agenzia }))
-    .map(g => ({ g: g, tasks: list.filter(x => x.cliente === g.k).sort(byMenu) }));
+  return clientiOrdinati().filter(c => !c.nascosto)
+    .map(c => ({ g: c, tasks: list.filter(x => x.cliente === c.id).sort(byMenu) }))
+    .filter(o => o.tasks.length);
 }
+
+/* I clienti chiusi nel menu': un tocco sul nome nasconde le sue task, un
+   altro le rimostra. Si ricorda. */
+const CHIUSI_KEY = 'gwork-clientichiusi-v1';
+let chiusi = readStore(CHIUSI_KEY);
 
 /* Il menu': tutte le task davanti, e i due filtri le sfoltiscono. Di base A,
    B, C: le task del serbatoio, per rank. Con "per cliente" le task dei clienti
@@ -1329,19 +1379,24 @@ function paintDrawer() {
     box.appendChild(ul);
   }
 
-  if (!perCliente) {
-    if (!sopra.length) box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
-    paintSync();
-    return;
+  const gruppi = perCliente ? gruppiCliente(list.concat(evs)) : [];
+  if (!sopra.length && !gruppi.length) {
+    box.appendChild(el('p', 'vuoto', tutte ? 'Nessuna task' : 'Serbatoio vuoto'));
   }
 
-  for (const o of gruppiCliente(list.concat(evs))) {
-    const h = el('p', 'grp grpcli');
+  for (const o of gruppi) {
+    /* la testata e' un bottone: chiude e riapre le task del cliente */
+    const chiuso = !!chiusi[o.g.id];
+    const h = el('button', 'grp grpcli');
+    h.type = 'button';
+    h.dataset.cliente = o.g.id;
+    h.setAttribute('aria-expanded', chiuso ? 'false' : 'true');
     h.appendChild(el('span', 'grpnome', o.g.nome));
-    box.appendChild(h);
-    if (!o.tasks.length) continue;   /* niente numero: lo zero non si legge */
     h.appendChild(el('span', 'grpnum' + (o.g.agenzia ? ' oro' : ''), String(o.tasks.length)));
+    h.appendChild(el('span', 'chip-frec'));
+    box.appendChild(h);
     const ul = el('ul', 'trows');
+    ul.hidden = chiuso;
     for (const x of o.tasks) ul.appendChild(trowNode(x, false));
     box.appendChild(ul);
   }
@@ -1376,6 +1431,14 @@ $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
 /* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
 $('drawerList').addEventListener('click', ev => {
+  const h = ev.target.closest('.grpcli[data-cliente]');
+  if (h) {
+    const id = h.dataset.cliente;
+    if (chiusi[id]) delete chiusi[id]; else chiusi[id] = 1;
+    writeStore(CHIUSI_KEY, chiusi);
+    paintDrawer();
+    return;
+  }
   const li = ev.target.closest('.trow[data-task]');
   if (li) openEditor(li.dataset.task);
 });
@@ -1472,7 +1535,7 @@ function chips(box, items, sel) {
 function paintEditor() {
   chips($('tRank'), RANKS.map(r => ({ k: r, lab: r })), ed.rank);
   tendina($('tCliente'), [{ k: '', lab: 'Nessuno' }]
-          .concat(CLIENTI.map(c => ({ k: c.id, lab: c.nome }))), ed.cliente || '');
+          .concat(clientiOrdinati().map(c => ({ k: c.id, lab: c.nome }))), ed.cliente || '');
   chips($('tGiorno'), dayChoices(ed.giorno), ed.giorno || '');
   chipAltro();
   listaGiorni();
@@ -1650,6 +1713,142 @@ $('tElimina').addEventListener('click', () => {
   touch(); render(); paintDrawer();
 });
 
+/* ----------------------------------------------------------- clienti ---- */
+
+/* L'editor dei clienti: una voce nuova sopra, l'elenco sotto. Ogni voce ha
+   l'occhio, che la nasconde dal menu' e la manda in fondo, e la croce, che
+   la toglie. Togliere un cliente con delle task chiede se togliere anche
+   quelle. */
+const dlgCli = $('clienti');
+let cTipo = 'cliente';
+const TIPI = [{ k: 'cliente', lab: 'Cliente' }, { k: 'agenzia', lab: 'Agenzia' }];
+
+const OCCHIO = '<svg class="occhio-ico" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/>'
+  + '<circle cx="12" cy="12" r="3"/><path class="occhio-barra" d="M4 4l16 16"/></svg>';
+
+/* L'id nasce dal nome, minuscolo e senza accenti; se c'e' gia' si numera. */
+function idCliente(nome) {
+  const base = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'cliente';
+  let id = base, n = 2;
+  while (tstore.clienti.some(c => c.id === id)) id = base + '-' + n++;
+  return id;
+}
+
+function paintClienti() {
+  chips($('cTipo'), TIPI, cTipo);
+  const ul = $('clientiLista');
+  ul.textContent = '';
+  for (const c of clientiOrdinati()) {
+    const li = el('li', 'crow' + (c.nascosto ? ' nascosto' : ''));
+    li.appendChild(el('span', 'cnome', c.nome));
+    if (c.agenzia) li.appendChild(el('span', 'ctipo', 'agenzia'));
+    const o = el('button', 'occhio');
+    o.type = 'button';
+    o.dataset.cliente = c.id;
+    o.setAttribute('aria-pressed', c.nascosto ? 'true' : 'false');
+    o.setAttribute('aria-label', c.nascosto ? 'Mostra nel menu' : 'Nascondi dal menu');
+    o.innerHTML = OCCHIO;
+    li.appendChild(o);
+    const d = el('button', 'cdel', '×');
+    d.type = 'button';
+    d.dataset.cliente = c.id;
+    d.setAttribute('aria-label', 'Elimina ' + c.nome);
+    li.appendChild(d);
+    ul.appendChild(li);
+  }
+  if (!tstore.clienti.length) ul.appendChild(el('li', 'vuoto', 'Nessun cliente'));
+}
+
+function openClienti() {
+  $('cNome').value = '';
+  $('cNota').hidden = true;
+  paintClienti();
+  dlgCli.showModal();
+  $('clientiTit').focus({ preventScroll: true });
+}
+
+$('clientiBtn').addEventListener('click', openClienti);
+$('clientiChiudi').addEventListener('click', () => dlgCli.close());
+
+$('cTipo').addEventListener('click', ev => {
+  const b = ev.target.closest('button.chip');
+  if (!b) return;
+  cTipo = b.dataset.v;
+  chips($('cTipo'), TIPI, cTipo);
+});
+
+$('clientiForm').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const nome = $('cNome').value.trim();
+  const nota = $('cNota');
+  nota.hidden = true;
+  if (!nome) return;
+  if (tstore.clienti.some(c => c.nome.toLowerCase() === nome.toLowerCase())) {
+    nota.textContent = 'C\'e` gia`.';
+    nota.hidden = false;
+    return;
+  }
+  const c = { id: idCliente(nome), nome: nome };
+  if (cTipo === 'agenzia') c.agenzia = true;
+  tstore.clienti.push(c);
+  $('cNome').value = '';
+  touch(); paintClienti(); paintDrawer();
+});
+
+/* Il cliente che si sta per togliere, mentre il pop-up chiede delle task. */
+let delCliente = null;
+
+function rimuoviCliente(c, conTask) {
+  if (conTask) {
+    for (const x of tstore.tasks) if (x.cliente === c.id && x.giorno) setCheck(x.giorno, x.id, false);
+    tstore.tasks = tstore.tasks.filter(x => x.cliente !== c.id);
+  } else {
+    /* le task restano, senza cliente. Un evento del calendario senza cliente
+       non ha piu' motivo di stare nel file: nella giornata resta comunque */
+    tstore.tasks = tstore.tasks.filter(x => !(x.evento && x.cliente === c.id));
+    for (const x of tstore.tasks) if (x.cliente === c.id) x.cliente = null;
+  }
+  tstore.clienti = tstore.clienti.filter(k => k.id !== c.id);
+  delete chiusi[c.id];
+  touch(); paintClienti(); render(); paintDrawer();
+}
+
+$('clientiLista').addEventListener('click', ev => {
+  const o = ev.target.closest('button.occhio[data-cliente]');
+  if (o) {
+    const c = findCliente(o.dataset.cliente);
+    if (!c) return;
+    if (c.nascosto) delete c.nascosto; else c.nascosto = true;
+    touch(); paintClienti(); paintDrawer();
+    return;
+  }
+  const d = ev.target.closest('button.cdel[data-cliente]');
+  if (!d) return;
+  const c = findCliente(d.dataset.cliente);
+  if (!c) return;
+  if (tstore.tasks.some(x => x.cliente === c.id)) {
+    delCliente = c;
+    $('clienteDelTit').textContent = 'Eliminare anche le task di ' + c.nome + '?';
+    $('clienteDel').showModal();
+  } else {
+    rimuoviCliente(c, false);
+  }
+});
+
+$('cdSi').addEventListener('click', () => {
+  $('clienteDel').close();
+  if (delCliente) rimuoviCliente(delCliente, true);
+  delCliente = null;
+});
+$('cdNo').addEventListener('click', () => {
+  $('clienteDel').close();
+  if (delCliente) rimuoviCliente(delCliente, false);
+  delCliente = null;
+});
+$('clienteDel').addEventListener('cancel', () => { delCliente = null; });
+
 /* ------------------------------------------------------------- pesca ---- */
 
 const dlgPesca = $('pesca');
@@ -1738,7 +1937,7 @@ let salvando = false, salvaErr = '';
 let syncMsg = '', syncErr = false;
 /* La versione online diversa dalla nostra, quando il telefono ha modifiche
    non salvate: Salva non la sovrascrive da solo, chiede prima cosa vince.
-   { tasks, sha }, oppure null quando online e telefono sono d'accordo. */
+   { file, sha }, oppure null quando online e telefono sono d'accordo. */
 let conflitto = null;
 
 function ghHeaders() {
@@ -1815,24 +2014,24 @@ async function pullTasks() {
 
   let data;
   try { data = JSON.parse(b64dec(j.content)); } catch (e) { paintSync('file online illeggibile', true); return; }
-  const remote = Array.isArray(data.tasks) ? data.tasks.map(validTask).filter(Boolean) : [];
+  const remote = normFile(data);
 
   if (tstore.dirty) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
-    if (sameTasks(remote, tstore.tasks)) {
+    if (sameFile(remote, localFile())) {
       conflitto = null;
       rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
       fine('allineato');
     } else {
       /* si tiene da parte: al prossimo Salva si sceglie, non si sovrascrive */
-      conflitto = { tasks: remote, sha: j.sha };
+      conflitto = { file: remote, sha: j.sha };
       fine('online c\'e` una versione diversa');
     }
     return;
   }
 
   conflitto = null;
-  tstore.tasks = remote;
+  applicaFile(remote);
   rememberSha(j.sha);
   tstore.dirty = false;
   saveLocal();
@@ -1861,18 +2060,18 @@ async function pushTasks(opts) {
 
   /* la fotografia di cio' che parte: se nel frattempo si tocca qualcosa,
      dirty deve restare acceso anche a salvataggio riuscito */
-  const sent = JSON.stringify(tstore.tasks);
+  const sent = JSON.stringify(localFile());
   const n = tstore.tasks.filter(x => !x.giorno).length;
   const payload = {
     message: 'task: ' + n + ' in serbatoio, ' + (tstore.tasks.length - n) + ' schedulate',
-    content: b64enc(JSON.stringify({ tasks: tstore.tasks }, null, 2) + '\n'),
+    content: b64enc(JSON.stringify(localFile(), null, 2) + '\n'),
     branch:  TASK_BRANCH
   };
   if (tstore.sha) payload.sha = tstore.sha;
   const body = JSON.stringify(payload);
 
   const salvato = () => {
-    if (JSON.stringify(tstore.tasks) === sent) tstore.dirty = false;
+    if (JSON.stringify(localFile()) === sent) tstore.dirty = false;
     saveLocal(); paintSalva();
     paintSync('salvato alle ' + fmtTime.format(new Date()));
   };
@@ -1908,11 +2107,8 @@ async function pushTasks(opts) {
         const j = await cur.json();
         let data = null;
         try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* illeggibile: si potra' solo sovrascrivere */ }
-        if (data && sameTasks(data.tasks, tstore.tasks)) { rememberSha(j.sha); salvato(); return; }
-        conflitto = {
-          tasks: data && Array.isArray(data.tasks) ? data.tasks.map(validTask).filter(Boolean) : null,
-          sha:   j.sha
-        };
+        if (data && sameFile(data, localFile())) { rememberSha(j.sha); salvato(); return; }
+        conflitto = { file: data ? normFile(data) : null, sha: j.sha };
         salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
         if (!opts.keepalive && !document.hidden) openConflitto();
         return;
@@ -1963,7 +2159,7 @@ const dlgConf = $('conflitto');
 function openConflitto() {
   if (dlgConf.open) return;
   /* un file illeggibile non si puo' prendere: resta solo sovrascriverlo */
-  $('confPrendi').hidden = !(conflitto && conflitto.tasks);
+  $('confPrendi').hidden = !(conflitto && conflitto.file);
   dlgConf.showModal();
 }
 
@@ -1974,8 +2170,8 @@ $('confSovrascrivi').addEventListener('click', () => {
 
 $('confPrendi').addEventListener('click', () => {
   dlgConf.close();
-  if (!conflitto || !conflitto.tasks) return;
-  tstore.tasks = conflitto.tasks;
+  if (!conflitto || !conflitto.file) return;
+  applicaFile(conflitto.file);
   rememberSha(conflitto.sha);
   conflitto = null;
   tstore.dirty = false; salvaErr = '';
