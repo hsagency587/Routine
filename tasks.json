@@ -74,7 +74,87 @@
       "nome": "Chiama Agenti Di Nucci",
       "desc": "",
       "rank": "A",
+      "cliente": "di-nucci",
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv6v0vny2gs",
+      "creata": "2026-09-10T07:11:14.483Z",
+      "nome": "Audit Bergamaschi",
+      "desc": "",
+      "rank": "B",
+      "cliente": "bergamaschi",
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv6x9ru4xxg",
+      "creata": "2026-09-10T07:12:59.322Z",
+      "nome": "Planning bergamaschi",
+      "desc": "",
+      "rank": "B",
+      "cliente": "bergamaschi",
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv6y9m668be",
+      "creata": "2026-09-10T07:13:45.774Z",
+      "nome": "Citazioni Paolo",
+      "desc": "",
+      "rank": "B",
       "cliente": null,
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv6zdwanob2",
+      "creata": "2026-09-10T07:14:37.978Z",
+      "nome": "GBP anna",
+      "desc": "",
+      "rank": "B",
+      "cliente": null,
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv705o06gz2",
+      "creata": "2026-09-10T07:15:13.968Z",
+      "nome": "Audit SEO anna",
+      "desc": "",
+      "rank": "B",
+      "cliente": null,
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv70k47d2xo",
+      "creata": "2026-09-10T07:15:32.695Z",
+      "nome": "Omnia Placeholder",
+      "desc": "",
+      "rank": "B",
+      "cliente": null,
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv70wfjyji4",
+      "creata": "2026-09-10T07:15:48.655Z",
+      "nome": "Omnia citazioni audit",
+      "desc": "",
+      "rank": "B",
+      "cliente": null,
+      "giorno": null,
+      "gws": null
+    },
+    {
+      "id": "tmtv726z347jt",
+      "creata": "2026-09-10T07:16:48.975Z",
+      "nome": "Volantino Di nucci",
+      "desc": "",
+      "rank": "B",
+      "cliente": "di-nucci",
       "giorno": null,
       "gws": null
     }
