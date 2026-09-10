@@ -435,6 +435,15 @@ body.menu-open{overflow:hidden}
 
 /* ---------- workout ---------- */
 
+/* il braccio in alto a sinistra: il PNG dell'emoji e' solo la sagoma, il
+   colore lo mette l'app, cosi' sta con le altre icone della barra */
+.wk-ico{
+  display:block;width:26px;height:26px;margin:0 auto;
+  background:var(--text-2);
+  -webkit-mask:url(icon-workout.png) center/contain no-repeat;
+  mask:url(icon-workout.png) center/contain no-repeat;
+}
+
 /* la tendina di sinistra: la stessa tendina, specchiata */
 .drawer-sx{
   right:auto;left:0;

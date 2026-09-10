@@ -17,7 +17,8 @@ const SHELL = [
   'app.js',
   'manifest.webmanifest',
   'icon-192.png',
-  'icon-512.png'
+  'icon-512.png',
+  'icon-workout.png'
 ];
 
 self.addEventListener('install', e => {
