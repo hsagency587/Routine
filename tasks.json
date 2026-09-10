@@ -271,7 +271,51 @@
         2,
         4
       ],
-      "esercizi": []
+      "esercizi": [
+        {
+          "id": "tmtvxzter7mi3",
+          "nome": "Pull up",
+          "setrep": "3×10",
+          "rec": "1'30\"",
+          "desc": ""
+        },
+        {
+          "id": "tmtvy0t96mgxm",
+          "nome": "Push up",
+          "setrep": "3×15",
+          "rec": "1'30\"",
+          "desc": ""
+        },
+        {
+          "id": "tmtvy5jslnlol",
+          "nome": "Australian",
+          "setrep": "3×15",
+          "rec": "1'30\"",
+          "desc": ""
+        },
+        {
+          "id": "tmtvy7l243xox",
+          "nome": "V push up",
+          "setrep": "3×4",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvyh081cn7y",
+          "nome": "Front lever",
+          "setrep": "3×15",
+          "rec": "",
+          "desc": "Puoi muoverti e aggiustare"
+        },
+        {
+          "id": "tmtvyitumnlvz",
+          "nome": "Push up",
+          "setrep": "3×15",
+          "rec": "1'30\"",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-10T20:05:49.580Z"
     },
     {
       "id": "tmtvupsmzi3cd",
