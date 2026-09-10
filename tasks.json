@@ -132,6 +132,14 @@
     {
       "id": "omnia",
       "nome": "Omnia"
+    },
+    {
+      "id": "ristorante-da-anna",
+      "nome": "Ristorante da Anna"
+    },
+    {
+      "id": "fisio-leone",
+      "nome": "Fisio Leone"
     }
   ],
   "workouts": [
