@@ -340,7 +340,14 @@ body.menu-open{overflow:hidden}
 .grp{margin:0;padding:var(--s3) var(--s4) var(--s1);font-size:11px;letter-spacing:.08em;color:var(--muted)}
 /* le testate per cliente: nome e quante task ha. Il numero c'e` solo se e`
    maggiore di zero: verde per i clienti, oro per le agenzie mie */
-.grpcli{display:flex;align-items:center;gap:var(--s2);letter-spacing:0;font-size:13px;color:var(--text)}
+.grpcli{
+  display:flex;align-items:center;gap:var(--s2);width:100%;
+  letter-spacing:0;font-size:13px;color:var(--text);text-align:left;cursor:pointer;
+}
+.grpcli:active{background:var(--surface-2)}
+/* la freccetta dice se le task del cliente sono aperte o chiuse */
+.grpcli .chip-frec{flex:none;margin:-3px var(--s1) 0 var(--s1);color:var(--muted)}
+.grpcli[aria-expanded="false"] .chip-frec{transform:rotate(-45deg);margin-top:0}
 .grpnome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .grpnum{flex:none;margin-left:auto;font-size:12px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
 .grpnum.oro{color:var(--gold)}
@@ -394,6 +401,37 @@ body.menu-open{overflow:hidden}
 
 .pesca-list{max-height:50vh;overflow-y:auto;margin:0 calc(-1 * var(--s4))}
 .pesca-list .trow{padding-right:var(--s4)}
+
+/* ---------- editor dei clienti ---------- */
+
+/* il bottone con l'icona, accanto al +: stesso ingombro, colore del testo */
+.plus-ico{color:var(--text-2)}
+.plus-ico .filtro-ico{width:22px;height:22px}
+.cTipo{margin:var(--s2) 0 var(--s3)}
+.clist{
+  list-style:none;margin:var(--s3) calc(-1 * var(--s4)) 0;padding:0;
+  max-height:45vh;overflow-y:auto;
+  border-top:1px solid var(--line);
+}
+.crow{
+  display:flex;align-items:center;gap:var(--s2);
+  min-height:44px;padding:0 var(--s2) 0 var(--s4);
+  border-bottom:1px solid var(--line);
+}
+.cnome{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctipo{flex:none;font-size:11px;letter-spacing:.06em;color:var(--gold)}
+/* nascosto con l'occhio: sbiadito, e sta in fondo */
+.crow.nascosto .cnome,.crow.nascosto .ctipo{opacity:.5}
+.occhio,.cdel{flex:none;width:40px;height:40px;border-radius:var(--radius);color:var(--muted)}
+.occhio:active,.cdel:active{background:var(--surface-2)}
+.occhio-ico{
+  display:block;width:22px;height:22px;margin:0 auto;
+  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+.occhio-barra{display:none}
+.occhio[aria-pressed="true"] .occhio-barra{display:block}
+.cdel{font-size:24px;line-height:1;color:var(--danger)}
+.clist .vuoto{padding:var(--s3) var(--s4)}
 
 /* ---------- piede ---------- */
 
