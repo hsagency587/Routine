@@ -1986,11 +1986,27 @@ const byNome = (a, b) => a.nome.localeCompare(b.nome);
 const findWorkout = id => tstore.workouts.find(w => w.id === id) || null;
 const giorniTxt = w => w.giorni.map(g => GIORNI_WK[g]).join(' ');
 
-/* PROGRAMMAZIONE aperta o chiusa: si ricorda. */
-const PROGR_KEY = 'gwork-progr-v1';
-let progr = (() => {
-  try { return localStorage.getItem(PROGR_KEY) === '1'; } catch (e) { return false; }
-})();
+/* Le tre sezioni della tendina — OGGI, PROGRAMMAZIONE, OGNI GIORNO — si
+   aprono e si chiudono toccando la scritta. Si ricorda. Di base OGGI e OGNI
+   GIORNO stanno aperte, PROGRAMMAZIONE chiusa. */
+const WKAPERTE_KEY = 'gwork-wkaperte-v1';
+const wkAperte = Object.assign({ oggi: true, progr: false, ogni: true }, readStore(WKAPERTE_KEY));
+
+/* La scritta di una sezione: un bottone con la freccetta che dice se e'
+   aperta. Il pannello che segue si mostra o si nasconde con lei. */
+function sezioneWk(box, k, label) {
+  const b = el('button', 'grp progr');
+  b.type = 'button';
+  b.dataset.sez = k;
+  b.setAttribute('aria-expanded', wkAperte[k] ? 'true' : 'false');
+  b.appendChild(el('span', null, label));
+  b.appendChild(el('span', 'chip-frec'));
+  box.appendChild(b);
+  const pan = el('div', 'progr-pan');
+  pan.hidden = !wkAperte[k];
+  box.appendChild(pan);
+  return pan;
+}
 
 function openWorkout(on) {
   $('wdrawer').classList.toggle('open', on);
@@ -2094,29 +2110,22 @@ function paintWorkout() {
   box.appendChild(tab);
 
   /* il workout di oggi */
-  box.appendChild(el('p', 'grp', 'OGGI'));
+  const panOggi = sezioneWk(box, 'oggi', 'OGGI');
   const oggiL = delGiorno(oggi);
-  if (!oggiL.length) box.appendChild(el('p', 'vuoto', 'Nessun workout oggi'));
-  for (const w of oggiL) box.appendChild(workoutTable(w));
+  if (!oggiL.length) panOggi.appendChild(el('p', 'vuoto', 'Nessun workout oggi'));
+  for (const w of oggiL) panOggi.appendChild(workoutTable(w));
 
-  /* la programmazione */
-  const b = el('button', 'grp progr');
-  b.type = 'button';
-  b.setAttribute('aria-expanded', progr ? 'true' : 'false');
-  b.appendChild(el('span', null, 'PROGRAMMAZIONE'));
-  b.appendChild(el('span', 'chip-frec'));
-  box.appendChild(b);
-  const pan = el('div', 'progr-pan');
-  pan.hidden = !progr;
+  /* la programmazione: da lunedi' a domenica, e in fondo quelli senza un
+     giorno fisso, che valgono ogni giorno */
+  const pan = sezioneWk(box, 'progr', 'PROGRAMMAZIONE');
   const sched  = ws.filter(w => w.giorni.length).sort((x, y) => x.giorni[0] - y.giorni[0] || byNome(x, y));
   const liberi = ws.filter(w => !w.giorni.length).sort(byNome);
   for (const w of sched) pan.appendChild(workoutTable(w));
   if (liberi.length) {
-    pan.appendChild(el('p', 'grp', 'SENZA GIORNO'));
-    for (const w of liberi) pan.appendChild(workoutTable(w));
+    const panOgni = sezioneWk(pan, 'ogni', 'OGNI GIORNO');
+    for (const w of liberi) panOgni.appendChild(workoutTable(w));
   }
   if (!ws.length) pan.appendChild(el('p', 'vuoto', 'Nessun workout: il + ne crea uno'));
-  box.appendChild(pan);
 }
 
 $('wkBtn').addEventListener('click', () => openWorkout(true));
@@ -2147,12 +2156,13 @@ $('wkList').addEventListener('click', ev => {
   const riga = ev.target.closest('tr[data-giorno]');
   if (riga) { openWkEd(null, +riga.dataset.giorno); return; }
 
-  const p = ev.target.closest('button.progr');
+  const p = ev.target.closest('button[data-sez]');
   if (p) {
-    progr = !progr;
-    try { localStorage.setItem(PROGR_KEY, progr ? '1' : '0'); } catch (e) { /* si dimentica */ }
-    p.setAttribute('aria-expanded', progr ? 'true' : 'false');
-    p.nextElementSibling.hidden = !progr;
+    const k = p.dataset.sez;
+    wkAperte[k] = !wkAperte[k];
+    writeStore(WKAPERTE_KEY, wkAperte);
+    p.setAttribute('aria-expanded', wkAperte[k] ? 'true' : 'false');
+    p.nextElementSibling.hidden = !wkAperte[k];
   }
 });
 
