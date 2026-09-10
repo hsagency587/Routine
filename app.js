@@ -1103,6 +1103,7 @@ if (!Array.isArray(tstore.tasks)) tstore = { tasks: [], sha: null, dirty: false,
 if (!Array.isArray(tstore.known)) tstore.known = [];
 /* i clienti stanno nel file con le task: senza, si parte dal seme */
 if (!Array.isArray(tstore.clienti)) tstore.clienti = validClienti(CLIENTI_SEME);
+if (!Array.isArray(tstore.workouts)) tstore.workouts = [];
 
 let archivio = readStore(ARCHIVIO_KEY);
 let mancate  = readStore(MANCATE_KEY);
@@ -1186,21 +1187,48 @@ function validClienti(list) {
   return out;
 }
 
-/* Il file com'e' scritto: task e clienti. Un file arrivato da fuori si
-   normalizza qui, e quello locale pure, cosi' il confronto e' alla pari. Un
-   file senza clienti e' di prima che ci fossero: vale il seme. */
+/* Un esercizio arrivato da fuori. Senza id ne prende uno dal posto che
+   occupa, sempre lo stesso: cosi' il confronto fra file resta fermo. */
+function validEsercizio(e, i) {
+  if (!e || typeof e !== 'object' || typeof e.nome !== 'string' || !e.nome.trim()) return null;
+  return {
+    id:     typeof e.id === 'string' && e.id ? e.id : 'e' + i,
+    nome:   e.nome.trim(),
+    setrep: typeof e.setrep === 'string' ? e.setrep : '',
+    rec:    typeof e.rec === 'string' ? e.rec : '',
+    desc:   typeof e.desc === 'string' ? e.desc : ''
+  };
+}
+
+/* Un workout: nome, i giorni della settimana (0 = lunedi'), gli esercizi
+   nell'ordine in cui si fanno. Senza giorni sta nella programmazione e
+   basta. */
+function validWorkout(w) {
+  if (!w || typeof w !== 'object' || typeof w.id !== 'string' || !w.id
+      || typeof w.nome !== 'string' || !w.nome.trim()) return null;
+  const giorni = [...new Set((Array.isArray(w.giorni) ? w.giorni : [])
+    .filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort((a, b) => a - b);
+  const esercizi = (Array.isArray(w.esercizi) ? w.esercizi : []).map(validEsercizio).filter(Boolean);
+  return { id: w.id, nome: w.nome.trim(), giorni: giorni, esercizi: esercizi };
+}
+
+/* Il file com'e' scritto: task, clienti e workout. Un file arrivato da fuori
+   si normalizza qui, e quello locale pure, cosi' il confronto e' alla pari.
+   Un file senza clienti e' di prima che ci fossero: vale il seme. */
 function normFile(data) {
   const clienti = data && Array.isArray(data.clienti) ? validClienti(data.clienti) : validClienti(CLIENTI_SEME);
   const tasks = data && Array.isArray(data.tasks) ? data.tasks.map(x => validTask(x, clienti)).filter(Boolean) : [];
-  return { tasks: tasks, clienti: clienti };
+  const workouts = data && Array.isArray(data.workouts) ? data.workouts.map(validWorkout).filter(Boolean) : [];
+  return { tasks: tasks, clienti: clienti, workouts: workouts };
 }
-const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti });
+const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts });
 const sameFile  = (a, b) => JSON.stringify(normFile(a)) === JSON.stringify(normFile(b));
 
 /* Un file letto da fuori prende il posto di quello locale. */
 function applicaFile(f) {
-  tstore.tasks   = f.tasks;
-  tstore.clienti = f.clienti;
+  tstore.tasks    = f.tasks;
+  tstore.clienti  = f.clienti;
+  tstore.workouts = f.workouts;
 }
 
 function saveLocal() { writeStore(TASKS_KEY, tstore); }
@@ -1291,8 +1319,9 @@ function openMenu(on) {
   if (on) paintDrawer();
 }
 
-/* Sul telefono il menu' si apre con uno swipe verso sinistra e si chiude con
-   uno verso destra, da qualunque punto della pagina. Il gesto deve essere
+/* Sul telefono le tendine si aprono e si chiudono con uno swipe, da qualunque
+   punto della pagina: verso sinistra apre il Menu' Task (a destra) o chiude
+   il Workout (a sinistra), verso destra il contrario. Il gesto deve essere
    deciso: almeno 60px in orizzontale e piu' orizzontale che verticale, cosi'
    lo scorrimento delle liste non lo scatena. Con un dialogo aperto niente:
    il dito sta lavorando li' dentro. */
@@ -1308,9 +1337,10 @@ document.addEventListener('touchend', e => {
   const dx = t.clientX - swipe.x, dy = t.clientY - swipe.y;
   swipe = null;
   if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-  const aperto = $('drawer').classList.contains('open');
-  if (dx < 0 && !aperto) openMenu(true);
-  else if (dx > 0 && aperto) openMenu(false);
+  const menu = $('drawer').classList.contains('open');
+  const wk   = $('wdrawer').classList.contains('open');
+  if (dx < 0) { if (wk) openWorkout(false); else if (!menu) openMenu(true); }
+  else        { if (menu) openMenu(false); else if (!wk) openWorkout(true); }
 }, { passive: true });
 
 function whenText(x) {
@@ -1405,7 +1435,7 @@ function paintDrawer() {
 
 $('menuBtn').addEventListener('click', () => openMenu(true));
 $('chiudiMenu').addEventListener('click', () => openMenu(false));
-$('velo').addEventListener('click', () => openMenu(false));
+$('velo').addEventListener('click', () => { openMenu(false); openWorkout(false); });
 /* i due box dei filtri: un tocco accende, un altro spegne */
 $('tutte').addEventListener('click', () => {
   tutte = !tutte;
@@ -1890,6 +1920,336 @@ $('pescaNuova').addEventListener('click', () => {
 });
 $('pescaAnnulla').addEventListener('click', () => dlgPesca.close());
 
+/* ------------------------------------------------------------ workout ---- */
+
+/* La tendina di sinistra: la settimana dei workout. Niente di quello che sta
+   qui entra nella giornata o nel Menu' Task: e' un programma a parte, che
+   vive nello stesso file e viaggia con lo stesso Salva. */
+
+const GIORNI_WK = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];   /* 0 = lunedi' */
+const oggiWk = () => (today().getDay() + 6) % 7;
+const byNome = (a, b) => a.nome.localeCompare(b.nome);
+const findWorkout = id => tstore.workouts.find(w => w.id === id) || null;
+const giorniTxt = w => w.giorni.map(g => GIORNI_WK[g]).join(' ');
+
+/* PROGRAMMAZIONE aperta o chiusa: si ricorda. */
+const PROGR_KEY = 'gwork-progr-v1';
+let progr = (() => {
+  try { return localStorage.getItem(PROGR_KEY) === '1'; } catch (e) { return false; }
+})();
+
+function openWorkout(on) {
+  $('wdrawer').classList.toggle('open', on);
+  $('velo').hidden = !on;
+  document.body.classList.toggle('menu-open', on);
+  $('wkBtn').setAttribute('aria-expanded', on ? 'true' : 'false');
+  if (on) paintWorkout();
+}
+
+/* I tre puntini accanto al nome di un workout: aprono il suo editor. */
+function moreWk(id) {
+  const b = el('button', 'more', '⋯');
+  b.type = 'button';
+  b.dataset.workout = id;
+  b.setAttribute('aria-label', 'Modifica il workout');
+  return b;
+}
+
+/* La tabella di un workout: il titolo in verde sulla prima riga, poi un
+   esercizio per riga in tre colonne. Un tocco sul nome apre la descrizione,
+   un tocco su set e rep o su rec apre l'esercizio. */
+function workoutTable(w) {
+  const t = el('table', 'wk');
+  const cg = el('colgroup');
+  for (const c of ['wc-nome', 'wc-set', 'wc-rec']) cg.appendChild(el('col', c));
+  t.appendChild(cg);
+
+  const hr = el('tr', 'wk-testa');
+  const th = el('td');
+  th.colSpan = 3;
+  const row = el('div', 'wvoce');
+  row.dataset.workout = w.id;
+  row.appendChild(el('span', 'wk-tit', w.nome));
+  if (w.giorni.length) row.appendChild(el('span', 'wk-gg', giorniTxt(w)));
+  row.appendChild(moreWk(w.id));
+  th.appendChild(row);
+  hr.appendChild(th);
+  t.appendChild(hr);
+
+  if (!w.esercizi.length) {
+    const tr = el('tr', 'wvuoto');
+    tr.dataset.workout = w.id;
+    const td = el('td', 'vuoto', 'Nessun esercizio: i tre puntini ne aggiungono');
+    td.colSpan = 3;
+    tr.appendChild(td);
+    t.appendChild(tr);
+  }
+
+  w.esercizi.forEach((e, i) => {
+    const tr = el('tr', 'wes');
+    tr.dataset.workout = w.id;
+    tr.dataset.es = i;
+    tr.appendChild(el('td', 'wnome', e.nome));
+    tr.appendChild(el('td', 'wset', e.setrep));
+    tr.appendChild(el('td', 'wrec', e.rec));
+    t.appendChild(tr);
+
+    /* la descrizione sta sotto, chiusa, con il bottone per modificare */
+    const dr = el('tr', 'wdesc');
+    dr.hidden = true;
+    const dd = el('td');
+    dd.colSpan = 3;
+    dd.appendChild(el('p', 'desc', e.desc || 'Nessuna descrizione'));
+    const mb = el('button', 'link wmod', 'Modifica');
+    mb.type = 'button';
+    mb.dataset.workout = w.id;
+    mb.dataset.es = i;
+    dd.appendChild(mb);
+    dr.appendChild(dd);
+    t.appendChild(dr);
+  });
+  return t;
+}
+
+/* La tendina: la settimana, il workout di oggi, e sotto PROGRAMMAZIONE che
+   apre tutti gli altri da lunedi' a domenica, poi quelli senza giorno. */
+function paintWorkout() {
+  const box = $('wkList');
+  box.textContent = '';
+  const oggi = oggiWk();
+  const ws = tstore.workouts;
+  const delGiorno = g => ws.filter(w => w.giorni.indexOf(g) >= 0).sort(byNome);
+
+  /* la settimana: un giorno per riga, oggi in verde */
+  const tab = el('table', 'settimana');
+  for (let g = 0; g < 7; g++) {
+    const tr = el('tr', g === oggi ? 'oggi' : null);
+    tr.dataset.giorno = g;
+    tr.appendChild(el('td', 'gg', GIORNI_WK[g]));
+    const td = el('td', 'wcell');
+    for (const w of delGiorno(g)) {
+      const r = el('div', 'wvoce');
+      r.dataset.workout = w.id;
+      r.appendChild(el('span', 'wnome', w.nome));
+      r.appendChild(moreWk(w.id));
+      td.appendChild(r);
+    }
+    tr.appendChild(td);
+    tab.appendChild(tr);
+  }
+  box.appendChild(tab);
+
+  /* il workout di oggi */
+  box.appendChild(el('p', 'grp', 'OGGI'));
+  const oggiL = delGiorno(oggi);
+  if (!oggiL.length) box.appendChild(el('p', 'vuoto', 'Nessun workout oggi'));
+  for (const w of oggiL) box.appendChild(workoutTable(w));
+
+  /* la programmazione */
+  const b = el('button', 'grp progr');
+  b.type = 'button';
+  b.setAttribute('aria-expanded', progr ? 'true' : 'false');
+  b.appendChild(el('span', null, 'PROGRAMMAZIONE'));
+  b.appendChild(el('span', 'chip-frec'));
+  box.appendChild(b);
+  const pan = el('div', 'progr-pan');
+  pan.hidden = !progr;
+  const sched  = ws.filter(w => w.giorni.length).sort((x, y) => x.giorni[0] - y.giorni[0] || byNome(x, y));
+  const liberi = ws.filter(w => !w.giorni.length).sort(byNome);
+  for (const w of sched) pan.appendChild(workoutTable(w));
+  if (liberi.length) {
+    pan.appendChild(el('p', 'grp', 'SENZA GIORNO'));
+    for (const w of liberi) pan.appendChild(workoutTable(w));
+  }
+  if (!ws.length) pan.appendChild(el('p', 'vuoto', 'Nessun workout: il + ne crea uno'));
+  box.appendChild(pan);
+}
+
+$('wkBtn').addEventListener('click', () => openWorkout(true));
+$('chiudiWk').addEventListener('click', () => openWorkout(false));
+$('nuovoWk').addEventListener('click', () => openWkEd(null, null));
+
+$('wkList').addEventListener('click', ev => {
+  const m = ev.target.closest('button.more[data-workout]');
+  if (m) { openWkEd(m.dataset.workout, null); return; }
+
+  const mod = ev.target.closest('button.wmod');
+  if (mod) { openExEd(mod.dataset.workout, +mod.dataset.es); return; }
+
+  /* un esercizio: il nome apre la descrizione, il resto della riga l'editor */
+  const cell = ev.target.closest('td');
+  const es = cell && cell.closest('tr.wes');
+  if (es) {
+    if (cell.classList.contains('wnome')) es.nextElementSibling.hidden = !es.nextElementSibling.hidden;
+    else openExEd(es.dataset.workout, +es.dataset.es);
+    return;
+  }
+
+  /* il titolo, la riga vuota, una voce della settimana: tutto apre il workout */
+  const voce = ev.target.closest('[data-workout]');
+  if (voce) { openWkEd(voce.dataset.workout, null); return; }
+
+  /* un giorno vuoto della settimana: un workout nuovo, gia' su quel giorno */
+  const riga = ev.target.closest('tr[data-giorno]');
+  if (riga) { openWkEd(null, +riga.dataset.giorno); return; }
+
+  const p = ev.target.closest('button.progr');
+  if (p) {
+    progr = !progr;
+    try { localStorage.setItem(PROGR_KEY, progr ? '1' : '0'); } catch (e) { /* si dimentica */ }
+    p.setAttribute('aria-expanded', progr ? 'true' : 'false');
+    p.nextElementSibling.hidden = !progr;
+  }
+});
+
+/* L'editor del workout: nome, giorni a chip, gli esercizi con le frecce per
+   l'ordine. Lavora su una copia: si scrive con Conferma. */
+const dlgWk = $('wkEd');
+let wed = null;                   /* { id, giorni, esercizi } */
+
+function openWkEd(id, giorno) {
+  const w = id ? findWorkout(id) : null;
+  if (id && !w) return;
+  wed = w ? { id: w.id, giorni: w.giorni.slice(), esercizi: w.esercizi.map(e => Object.assign({}, e)) }
+          : { id: null, giorni: giorno != null ? [giorno] : [], esercizi: [] };
+  $('wNome').value = w ? w.nome : '';
+  $('wkEdTit').textContent = w ? 'Modifica workout' : 'Nuovo workout';
+  $('wElimina').hidden = !w;
+  $('wElimina').textContent = 'Elimina';
+  paintWkEd();
+  dlgWk.showModal();
+  $('wkEdTit').focus({ preventScroll: true });
+}
+
+function paintWkEd() {
+  chips($('wGiorni'), GIORNI_WK.map((g, i) => ({ k: String(i), lab: g })), wed.giorni.map(String));
+  const ul = $('wEsercizi');
+  ul.textContent = '';
+  wed.esercizi.forEach((e, i) => {
+    const li = el('li', 'esrow');
+    const n = el('button', 'esnome', e.nome);
+    n.type = 'button';
+    n.dataset.es = i;
+    li.appendChild(n);
+    for (const d of [-1, 1]) {
+      const b = el('button', 'esmv', d < 0 ? '▲' : '▼');
+      b.type = 'button';
+      b.dataset.es = i;
+      b.dataset.d = d;
+      b.disabled = i + d < 0 || i + d >= wed.esercizi.length;
+      b.setAttribute('aria-label', d < 0 ? 'Sposta su' : 'Sposta giu`');
+      li.appendChild(b);
+    }
+    ul.appendChild(li);
+  });
+  if (!wed.esercizi.length) ul.appendChild(el('li', 'vuoto', 'Nessun esercizio'));
+}
+
+$('wkEdForm').addEventListener('click', ev => {
+  if (!wed) return;
+  const chip = ev.target.closest('#wGiorni button.chip');
+  if (chip) {
+    const g = +chip.dataset.v;
+    wed.giorni = wed.giorni.indexOf(g) >= 0 ? wed.giorni.filter(x => x !== g)
+                                            : wed.giorni.concat(g).sort((a, b) => a - b);
+    paintWkEd();
+    return;
+  }
+  const mv = ev.target.closest('button.esmv');
+  if (mv) {
+    const i = +mv.dataset.es, j = i + (+mv.dataset.d), l = wed.esercizi;
+    if (j < 0 || j >= l.length) return;
+    [l[i], l[j]] = [l[j], l[i]];
+    paintWkEd();
+    return;
+  }
+  const es = ev.target.closest('button.esnome');
+  if (es) openExEd(null, +es.dataset.es);
+});
+
+$('wAggiungi').addEventListener('click', () => openExEd(null, -1));
+
+$('wkEdForm').addEventListener('submit', ev => {
+  const nome = $('wNome').value.trim();
+  if (!nome) { ev.preventDefault(); $('wNome').focus(); return; }
+  if (!wed) return;
+  let w = wed.id ? findWorkout(wed.id) : null;
+  if (!w) { w = { id: newId() }; tstore.workouts.push(w); }
+  w.nome = nome;
+  w.giorni = wed.giorni.slice();
+  w.esercizi = wed.esercizi;
+  wed = null;
+  touch(); paintWorkout();
+});
+
+$('wAnnulla').addEventListener('click', () => { wed = null; dlgWk.close(); });
+dlgWk.addEventListener('cancel', () => { wed = null; });
+
+/* due tocchi per eliminare: il primo chiede, il secondo fa */
+$('wElimina').addEventListener('click', () => {
+  const b = $('wElimina');
+  if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
+  if (wed && wed.id) tstore.workouts = tstore.workouts.filter(w => w.id !== wed.id);
+  wed = null;
+  dlgWk.close();
+  touch(); paintWorkout();
+});
+
+/* L'editor dell'esercizio. Dall'editor del workout (wid nullo) scrive nella
+   sua copia, che si salva con Conferma; da una tabella scrive dritto nel
+   workout, e si salva subito. */
+const dlgEx = $('exEd');
+let exd = null;                   /* { lista, i, wid }: dove, a che posto (-1 = nuovo) */
+
+function openExEd(wid, i) {
+  const w = wid ? findWorkout(wid) : null;
+  if (wid ? !w : !wed) return;
+  const lista = w ? w.esercizi : wed.esercizi;
+  const e = i >= 0 ? lista[i] : null;
+  if (i >= 0 && !e) return;
+  exd = { lista: lista, i: i, wid: wid };
+  $('exEdTit').textContent = e ? 'Modifica esercizio' : 'Nuovo esercizio';
+  $('eNome').value = e ? e.nome : '';
+  $('eSet').value  = e ? e.setrep : '';
+  $('eRec').value  = e ? e.rec : '';
+  $('eDesc').value = e ? e.desc : '';
+  $('eElimina').hidden = !e;
+  $('eElimina').textContent = 'Elimina';
+  dlgEx.showModal();
+  $('exEdTit').focus({ preventScroll: true });
+}
+
+function fineEx() {
+  const diretto = !!exd.wid;
+  exd = null;
+  if (diretto) { touch(); paintWorkout(); } else paintWkEd();
+}
+
+$('exEdForm').addEventListener('submit', ev => {
+  const nome = $('eNome').value.trim();
+  if (!nome) { ev.preventDefault(); $('eNome').focus(); return; }
+  if (!exd) return;
+  const e = exd.i >= 0 ? exd.lista[exd.i] : { id: newId() };
+  e.nome   = nome;
+  e.setrep = $('eSet').value.trim();
+  e.rec    = $('eRec').value.trim();
+  e.desc   = $('eDesc').value.trim();
+  if (exd.i < 0) exd.lista.push(e);
+  fineEx();
+});
+
+$('eAnnulla').addEventListener('click', () => { exd = null; dlgEx.close(); });
+dlgEx.addEventListener('cancel', () => { exd = null; });
+
+$('eElimina').addEventListener('click', () => {
+  const b = $('eElimina');
+  if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
+  if (!exd) { dlgEx.close(); return; }
+  if (exd.i >= 0) exd.lista.splice(exd.i, 1);
+  dlgEx.close();
+  fineEx();
+});
+
 /* ------------------------------------------------------ impostazioni ---- */
 
 const dlgImp = $('impostazioni');
@@ -1968,9 +2328,9 @@ function rememberSha(sha) {
   tstore.known = [sha].concat(tstore.known.filter(x => x !== sha)).slice(0, 4);
 }
 
-/* Due bottoni, uno stato: in alto nella pagina e in testa al menu'. */
+/* Tre bottoni, uno stato: in alto nella pagina e in testa alle due tendine. */
 function paintSalva() {
-  for (const b of [$('salva'), $('salvaMenu')]) {
+  for (const b of [$('salva'), $('salvaMenu'), $('salvaWk')]) {
     b.hidden = !tstore.dirty;
     b.disabled = salvando;
     b.classList.toggle('err', !!salvaErr);
@@ -2035,7 +2395,7 @@ async function pullTasks() {
   rememberSha(j.sha);
   tstore.dirty = false;
   saveLocal();
-  tidyTasks(); render(); paintDrawer(); paintSalva();
+  tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
   fine('allineato alle ' + fmtTime.format(new Date()));
 }
 
@@ -2176,7 +2536,7 @@ $('confPrendi').addEventListener('click', () => {
   conflitto = null;
   tstore.dirty = false; salvaErr = '';
   saveLocal();
-  tidyTasks(); render(); paintDrawer(); paintSalva();
+  tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
   paintSync('allineato alle ' + fmtTime.format(new Date()));
 });
 
