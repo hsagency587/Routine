@@ -142,5 +142,16 @@
       "nome": "Fisio Leone"
     }
   ],
-  "workouts": []
+  "workouts": [
+    {
+      "id": "tmtvosbo12fdw",
+      "nome": "Cali+wing chun",
+      "giorni": [
+        1,
+        2,
+        4
+      ],
+      "esercizi": []
+    }
+  ]
 }
