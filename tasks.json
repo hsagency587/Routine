@@ -274,58 +274,24 @@
       "esercizi": []
     },
     {
-      "id": "tmtvupe02noht",
-      "nome": "FASCIA GLIDE",
-      "giorni": [
-        3
-      ],
-      "esercizi": [
-        {
-          "id": "tmtvx8sx66sr6",
-          "nome": "Swing",
-          "setrep": "",
-          "rec": "",
-          "desc": ""
-        },
-        {
-          "id": "tmtvx8xt87714",
-          "nome": "Cycle",
-          "setrep": "",
-          "rec": "",
-          "desc": ""
-        },
-        {
-          "id": "tmtvx97a5v4am",
-          "nome": "Smooth push hand",
-          "setrep": "",
-          "rec": "",
-          "desc": ""
-        },
-        {
-          "id": "tmtvx9cjdfgxi",
-          "nome": "Leg stretch",
-          "setrep": "",
-          "rec": "",
-          "desc": ""
-        },
-        {
-          "id": "tmtvx9sk1591n",
-          "nome": "Wall sit",
-          "setrep": "",
-          "rec": "",
-          "desc": ""
-        }
-      ],
-      "mod": "2026-09-10T19:32:03.817Z"
-    },
-    {
       "id": "tmtvupsmzi3cd",
       "nome": "ROLL + STRETCH",
       "giorni": [
         6
       ],
       "esercizi": []
+    },
+    {
+      "id": "tmtvxcldjpyga",
+      "nome": "ADVANCE FASCIA",
+      "giorni": [
+        5
+      ],
+      "esercizi": [],
+      "mod": "2026-09-10T19:32:44.215Z"
     }
   ],
-  "cancellate": {}
+  "cancellate": {
+    "tmtvupe02noht": "2026-09-10T19:33:21.329Z"
+  }
 }
