@@ -287,8 +287,44 @@
       "giorni": [
         5
       ],
-      "esercizi": [],
-      "mod": "2026-09-10T19:32:44.215Z"
+      "esercizi": [
+        {
+          "id": "tmtvxjv0cnyi8",
+          "nome": "Crescent walk",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxk08bxh21",
+          "nome": "Dorsiflexion walk",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxku859ygh",
+          "nome": "T curl",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxlcmcb2rn",
+          "nome": "Hand curl",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxlm5ltlqm",
+          "nome": "Sweep",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-10T19:40:16.014Z"
     },
     {
       "id": "tmtvxefsmht5w",
@@ -298,6 +334,51 @@
       ],
       "esercizi": [],
       "mod": "2026-09-10T19:34:10.294Z"
+    },
+    {
+      "id": "tmtvxjo3b1j8k",
+      "nome": "FASCIA MASTERY",
+      "giorni": [
+        0
+      ],
+      "esercizi": [
+        {
+          "id": "tmtvxg7p98z21",
+          "nome": "Lounge",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxgmfdh1jo",
+          "nome": "Hop",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxit1qsgun",
+          "nome": "Wall bounce",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxj1r1nsn3",
+          "nome": "Bear crawl",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvxmgvvs79h",
+          "nome": "Big toe press",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-10T19:40:39.155Z"
     }
   ],
   "cancellate": {
