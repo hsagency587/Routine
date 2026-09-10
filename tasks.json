@@ -104,123 +104,123 @@
     },
     {
       "id": "tmtv43xsifqvd",
-      "creata": "2026-09-10T05:54:11.538Z",
       "nome": "Finisci di scrivere la scheda",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T05:54:11.538Z"
     },
     {
       "id": "tmtv5ka1du75a",
-      "creata": "2026-09-10T06:34:53.521Z",
       "nome": "Organizziamo client work",
       "desc": "",
       "rank": "A",
       "cliente": "hs-agency",
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T06:34:53.521Z"
     },
     {
       "id": "tmtv60sx3h3jo",
-      "creata": "2026-09-10T06:47:44.487Z",
       "nome": "Chiama Agenti Di Nucci",
       "desc": "",
       "rank": "A",
       "cliente": "di-nucci",
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T06:47:44.487Z"
     },
     {
       "id": "tmtv6v0vny2gs",
-      "creata": "2026-09-10T07:11:14.483Z",
       "nome": "Audit Bergamaschi",
       "desc": "",
       "rank": "B",
       "cliente": "bergamaschi",
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:11:14.483Z"
     },
     {
       "id": "tmtv6x9ru4xxg",
-      "creata": "2026-09-10T07:12:59.322Z",
       "nome": "Planning bergamaschi",
       "desc": "",
       "rank": "B",
       "cliente": "bergamaschi",
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:12:59.322Z"
     },
     {
       "id": "tmtv6y9m668be",
-      "creata": "2026-09-10T07:13:45.774Z",
       "nome": "Citazioni Paolo",
       "desc": "",
       "rank": "B",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:13:45.774Z"
     },
     {
       "id": "tmtv6zdwanob2",
-      "creata": "2026-09-10T07:14:37.978Z",
       "nome": "GBP anna",
       "desc": "",
       "rank": "B",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:14:37.978Z"
     },
     {
       "id": "tmtv705o06gz2",
-      "creata": "2026-09-10T07:15:13.968Z",
       "nome": "Audit SEO anna",
       "desc": "",
       "rank": "B",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:15:13.968Z"
     },
     {
       "id": "tmtv70k47d2xo",
-      "creata": "2026-09-10T07:15:32.695Z",
       "nome": "Omnia Placeholder",
       "desc": "",
       "rank": "B",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:15:32.695Z"
     },
     {
       "id": "tmtv70wfjyji4",
-      "creata": "2026-09-10T07:15:48.655Z",
       "nome": "Omnia citazioni audit",
       "desc": "",
       "rank": "B",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:15:48.655Z"
     },
     {
       "id": "tmtv726z347jt",
-      "creata": "2026-09-10T07:16:48.975Z",
       "nome": "Volantino Di nucci",
       "desc": "",
       "rank": "B",
       "cliente": "di-nucci",
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T07:16:48.975Z"
     },
     {
       "id": "tmtv90emtv2rc",
-      "creata": "2026-09-10T08:11:24.821Z",
       "nome": "MONTAGNA",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": null,
-      "gws": null
+      "gws": null,
+      "creata": "2026-09-10T08:11:24.821Z"
     }
   ],
   "clienti": [
@@ -279,7 +279,44 @@
       "giorni": [
         3
       ],
-      "esercizi": []
+      "esercizi": [
+        {
+          "id": "tmtvx8sx66sr6",
+          "nome": "Swing",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvx8xt87714",
+          "nome": "Cycle",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvx97a5v4am",
+          "nome": "Smooth push hand",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvx9cjdfgxi",
+          "nome": "Leg stretch",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtvx9sk1591n",
+          "nome": "Wall sit",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-10T19:32:03.817Z"
     },
     {
       "id": "tmtvupsmzi3cd",
@@ -289,5 +326,6 @@
       ],
       "esercizi": []
     }
-  ]
+  ],
+  "cancellate": {}
 }
