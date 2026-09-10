@@ -57,6 +57,16 @@
       "cliente": null,
       "giorno": null,
       "gws": null
+    },
+    {
+      "id": "tmtv5ka1du75a",
+      "creata": "2026-09-10T06:34:53.521Z",
+      "nome": "Organizziamo client work",
+      "desc": "",
+      "rank": "A",
+      "cliente": "hs-agency",
+      "giorno": null,
+      "gws": null
     }
   ]
 }
