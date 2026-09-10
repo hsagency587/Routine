@@ -35,6 +35,7 @@
   </div>
 
   <div class="bar">
+    <button type="button" class="menu" id="wkBtn" aria-label="Apri i workout" aria-controls="wdrawer">💪</button>
     <p class="fresh" id="fresh">Caricamento…</p>
     <button type="button" class="salva" id="salva" hidden>Salva</button>
     <button type="button" class="menu" id="menuBtn" aria-label="Apri il Menù Task" aria-controls="drawer">☰</button>
@@ -108,6 +109,18 @@
     <button type="button" class="link" id="impostazioniBtn">Impostazioni</button>
     <span class="sync" id="sync"></span>
   </div>
+</aside>
+
+<!-- La tendina Workout, a sinistra: la settimana, il workout di oggi, la
+     programmazione. Niente di questo entra nella giornata. -->
+<aside class="drawer drawer-sx" id="wdrawer" aria-label="Workout">
+  <div class="drawer-top">
+    <h2 class="drawer-tit">Workout</h2>
+    <button type="button" class="salva" id="salvaWk" hidden>Salva</button>
+    <button type="button" class="plus" id="nuovoWk" aria-label="Nuovo workout">+</button>
+    <button type="button" class="chiudi" id="chiudiWk" aria-label="Chiudi i workout">×</button>
+  </div>
+  <div class="drawer-list" id="wkList"></div>
 </aside>
 
 <!-- Un editor solo, per creare e per modificare. -->
@@ -197,6 +210,54 @@
       <button type="button" class="btn" id="pescaAnnulla">Annulla</button>
     </div>
   </div>
+</dialog>
+
+<!-- L'editor del workout: nome, giorni, e gli esercizi in ordine. -->
+<dialog class="chiusura" id="wkEd" aria-labelledby="wkEdTit">
+  <form method="dialog" class="chiusura-box" id="wkEdForm">
+    <h2 class="chiusura-tit" id="wkEdTit" tabindex="-1" autofocus>Workout</h2>
+
+    <label class="commento-lab" for="wNome">Nome</label>
+    <input class="campo" id="wNome" type="text" required maxlength="60" autocomplete="off">
+
+    <p class="commento-lab">Giorni</p>
+    <div class="chips" id="wGiorni"></div>
+
+    <p class="commento-lab">Esercizi</p>
+    <ul class="eslist" id="wEsercizi"></ul>
+    <button type="button" class="btn btn-largo" id="wAggiungi">Aggiungi esercizio</button>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn btn-del" id="wElimina">Elimina</button>
+      <button type="button" class="btn" id="wAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- L'editor dell'esercizio: si apre sopra quello del workout, o da una tabella. -->
+<dialog class="chiusura" id="exEd" aria-labelledby="exEdTit">
+  <form method="dialog" class="chiusura-box" id="exEdForm">
+    <h2 class="chiusura-tit" id="exEdTit" tabindex="-1" autofocus>Esercizio</h2>
+
+    <label class="commento-lab" for="eNome">Nome</label>
+    <input class="campo" id="eNome" type="text" required maxlength="80" autocomplete="off">
+
+    <label class="commento-lab" for="eSet">Set e rep</label>
+    <input class="campo" id="eSet" type="text" maxlength="40" autocomplete="off" placeholder="3x15">
+
+    <label class="commento-lab" for="eRec">Rec</label>
+    <input class="campo" id="eRec" type="text" maxlength="20" autocomplete="off" placeholder="1'30''">
+
+    <label class="commento-lab" for="eDesc">Descrizione</label>
+    <textarea class="commento" id="eDesc" rows="3"></textarea>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn btn-del" id="eElimina">Elimina</button>
+      <button type="button" class="btn" id="eAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog class="chiusura" id="impostazioni" aria-labelledby="impostazioniTit">

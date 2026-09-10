@@ -433,6 +433,84 @@ body.menu-open{overflow:hidden}
 .cdel{font-size:24px;line-height:1;color:var(--danger)}
 .clist .vuoto{padding:var(--s3) var(--s4)}
 
+/* ---------- workout ---------- */
+
+/* la tendina di sinistra: la stessa tendina, specchiata */
+.drawer-sx{
+  right:auto;left:0;
+  border-left:0;border-right:1px solid var(--line);
+  transform:translateX(-100%);
+}
+
+/* la settimana: un giorno per riga, la sigla a sinistra, oggi in verde */
+.settimana{
+  width:calc(100% - 2 * var(--s3));margin:var(--s2) var(--s3);
+  border-collapse:separate;border-spacing:0;table-layout:fixed;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+}
+.settimana td{border-top:1px solid var(--line);padding:0;vertical-align:middle;font-size:14px}
+.settimana tr:first-child td{border-top:0}
+.gg{
+  width:48px;border-right:1px solid var(--line);
+  text-align:center;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);
+}
+.oggi .gg{color:var(--accent)}
+.wcell:empty{height:44px}
+/* un workout per riga dentro la cella: il nome e i tre puntini */
+.wvoce{display:flex;align-items:center;gap:var(--s2);min-height:44px;padding-left:var(--s3);cursor:pointer}
+.wvoce + .wvoce{border-top:1px solid var(--line)}
+.wvoce .wnome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wvoce .more{margin-right:var(--s1)}
+
+/* la tabella di un workout: titolo in verde, poi tre colonne */
+.wk{
+  width:calc(100% - 2 * var(--s3));margin:0 var(--s3) var(--s3);
+  border-collapse:separate;border-spacing:0;table-layout:fixed;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+}
+.wc-nome{width:50%}
+.wc-set{width:32%}
+.wc-rec{width:18%}
+.wk td{border-top:1px solid var(--line);padding:var(--s2);font-size:13px;vertical-align:middle;overflow-wrap:anywhere}
+.wk-testa td{border-top:0;padding:0}
+.wk-tit{
+  flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--accent);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.wk-gg{flex:none;font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.wes,.wvuoto{cursor:pointer}
+.wes:active{background:rgba(255,255,255,.04)}
+.wnome{color:var(--text)}
+.wset{color:var(--text-2)}
+.wrec{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.wk .vuoto{padding:var(--s3)}
+/* la descrizione, sotto la riga dell'esercizio, con il bottone Modifica */
+.wdesc td{border-top:0;padding:0 var(--s2) var(--s2)}
+.wdesc .desc{margin:0;padding:0}
+.wdesc .link{min-height:32px;font-size:12px}
+
+/* PROGRAMMAZIONE: la scritta e' un bottone, la freccetta dice se e' aperta */
+.progr{display:flex;align-items:center;width:100%;text-align:left;cursor:pointer;font-weight:700}
+.progr:active{background:var(--surface-2)}
+.progr .chip-frec{margin:-3px 0 0 var(--s2);color:var(--muted)}
+.progr[aria-expanded="false"] .chip-frec{transform:rotate(-45deg);margin-top:0}
+
+/* l'elenco degli esercizi nell'editor del workout, con le frecce */
+.eslist{
+  list-style:none;margin:0 0 var(--s3);padding:0;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+}
+.esrow{display:flex;align-items:center;min-height:44px;padding-left:var(--s3)}
+.esrow + .esrow{border-top:1px solid var(--line)}
+.esnome{
+  flex:1;min-width:0;min-height:44px;text-align:left;font-size:14px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.esmv{flex:none;width:40px;height:40px;border-radius:var(--radius);color:var(--muted);font-size:13px}
+.esmv:active{background:var(--surface)}
+.esmv:disabled{opacity:.25}
+.eslist .vuoto{padding:var(--s3)}
+
 /* ---------- piede ---------- */
 
 .foot{
