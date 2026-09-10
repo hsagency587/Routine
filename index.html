@@ -181,6 +181,20 @@
   </form>
 </dialog>
 
+<!-- Online c'e` una versione diversa da quella del telefono: si sceglie, non
+     si sovrascrive alla cieca. -->
+<dialog class="chiusura" id="conflitto" aria-labelledby="conflittoTit">
+  <div class="chiusura-box">
+    <h2 class="chiusura-tit" id="conflittoTit" tabindex="-1" autofocus>Online c'è una versione diversa</h2>
+    <p class="nota">Il file su GitHub non è quello da cui sei partito: un altro dispositivo, o una modifica a mano, ha salvato nel frattempo. Cosa vince?</p>
+    <div class="chiusura-btn colonna">
+      <button type="button" class="btn btn-ok" id="confSovrascrivi">Sovrascrivi online con il telefono</button>
+      <button type="button" class="btn btn-del" id="confPrendi">Prendi online e butta le mie modifiche</button>
+      <button type="button" class="btn" id="confAnnulla">Annulla</button>
+    </div>
+  </div>
+</dialog>
+
 <dialog class="chiusura" id="chiusura" aria-labelledby="chiusuraTit">
   <form method="dialog" class="chiusura-box" id="chiusuraForm">
     <h2 class="chiusura-tit" id="chiusuraTit">Chiusura giornata</h2>

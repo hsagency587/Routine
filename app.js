@@ -1736,6 +1736,10 @@ async function provaToken() {
 
 let salvando = false, salvaErr = '';
 let syncMsg = '', syncErr = false;
+/* La versione online diversa dalla nostra, quando il telefono ha modifiche
+   non salvate: Salva non la sovrascrive da solo, chiede prima cosa vince.
+   { tasks, sha }, oppure null quando online e telefono sono d'accordo. */
+let conflitto = null;
 
 function ghHeaders() {
   const h = { Accept: 'application/vnd.github+json' };
@@ -1816,14 +1820,18 @@ async function pullTasks() {
   if (tstore.dirty) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
     if (sameTasks(remote, tstore.tasks)) {
+      conflitto = null;
       rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
       fine('allineato');
     } else {
-      fine('online c\'e` una versione diversa: salvando la sovrascrivi');
+      /* si tiene da parte: al prossimo Salva si sceglie, non si sovrascrive */
+      conflitto = { tasks: remote, sha: j.sha };
+      fine('online c\'e` una versione diversa');
     }
     return;
   }
 
+  conflitto = null;
   tstore.tasks = remote;
   rememberSha(j.sha);
   tstore.dirty = false;
@@ -1837,6 +1845,16 @@ async function pushTasks(opts) {
   opts = opts || {};
   if (!tstore.dirty || salvando) return;
   if (!token) { salvaErr = 'manca il token'; paintSalva(); paintSync('manca il token', true); return; }
+
+  /* online c'e' una versione diversa: si chiede cosa vince. Il salvagente
+     non puo' chiedere, la pagina sta morendo: lascia tutto com'e', e alla
+     riapertura Salva e' ancora li', rosso. */
+  if (conflitto && !opts.force) {
+    salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
+    if (!opts.keepalive) openConflitto();
+    return;
+  }
+  if (opts.force && conflitto) { tstore.sha = conflitto.sha; conflitto = null; }
 
   salvando = true; salvaErr = ''; salvaRetry = false;
   paintSalva();
@@ -1877,8 +1895,8 @@ async function pushTasks(opts) {
   /* sha vecchia: online e' cambiato qualcosa nel frattempo — di solito e' il
      salvagente di una chiusura precedente, arrivato senza che lo sapessimo.
      Si rilegge, e se e' la nostra stessa versione si e' gia' a posto;
-     altrimenti si riprova una volta con la sha giusta. Vince il telefono. */
-  if ((r.status === 409 || r.status === 422) && !opts.retry) {
+     altrimenti non si riprova alla cieca: si chiede cosa vince. */
+  if (r.status === 409 || r.status === 422) {
     try {
       const cur = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
       if (cur.status === 404) {
@@ -1888,11 +1906,16 @@ async function pushTasks(opts) {
       }
       if (cur.ok) {
         const j = await cur.json();
-        rememberSha(j.sha);
         let data = null;
-        try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* si riprova comunque */ }
-        if (data && sameTasks(data.tasks, tstore.tasks)) { salvato(); return; }
-        return pushTasks(Object.assign({}, opts, { retry: true }));
+        try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* illeggibile: si potra' solo sovrascrivere */ }
+        if (data && sameTasks(data.tasks, tstore.tasks)) { rememberSha(j.sha); salvato(); return; }
+        conflitto = {
+          tasks: data && Array.isArray(data.tasks) ? data.tasks.map(validTask).filter(Boolean) : null,
+          sha:   j.sha
+        };
+        salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
+        if (!opts.keepalive && !document.hidden) openConflitto();
+        return;
       }
     } catch (e) { /* si cade nell'errore qui sotto */ }
     salvaErr = 'conflitto online'; paintSalva(); paintSync(salvaErr, true);
@@ -1929,8 +1952,39 @@ function salvagente() {
    sistema la persona, riprovare sarebbe solo rumore. */
 let salvaRetry = false;
 function riprovaSalva() {
-  if (tstore.dirty && salvaRetry && !salvando && token) pushTasks();
+  if (tstore.dirty && salvaRetry && !salvando && token && !conflitto) pushTasks();
 }
+
+/* Il pop-up del conflitto: online c'e' una versione diversa da quella del
+   telefono. O si sovrascrive, o si prende quella e si buttano le proprie.
+   Annullare lascia tutto com'e': Salva resta rosso finche' non si decide. */
+const dlgConf = $('conflitto');
+
+function openConflitto() {
+  if (dlgConf.open) return;
+  /* un file illeggibile non si puo' prendere: resta solo sovrascriverlo */
+  $('confPrendi').hidden = !(conflitto && conflitto.tasks);
+  dlgConf.showModal();
+}
+
+$('confSovrascrivi').addEventListener('click', () => {
+  dlgConf.close();
+  pushTasks({ force: true });
+});
+
+$('confPrendi').addEventListener('click', () => {
+  dlgConf.close();
+  if (!conflitto || !conflitto.tasks) return;
+  tstore.tasks = conflitto.tasks;
+  rememberSha(conflitto.sha);
+  conflitto = null;
+  tstore.dirty = false; salvaErr = '';
+  saveLocal();
+  tidyTasks(); render(); paintDrawer(); paintSalva();
+  paintSync('allineato alle ' + fmtTime.format(new Date()));
+});
+
+$('confAnnulla').addEventListener('click', () => dlgConf.close());
 
 $('salva').addEventListener('click', () => pushTasks());
 $('salvaMenu').addEventListener('click', () => pushTasks());
