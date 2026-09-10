@@ -102,5 +102,46 @@
       "gws": 0,
       "creata": "2026-09-08T20:33:48.786Z"
     }
+  ],
+  "clienti": [
+    {
+      "id": "hs-agency",
+      "nome": "HS-Agency",
+      "agenzia": true
+    },
+    {
+      "id": "arbogreen",
+      "nome": "Arbogreen"
+    },
+    {
+      "id": "bergamaschi",
+      "nome": "Bergamaschi"
+    },
+    {
+      "id": "di-nucci",
+      "nome": "Di-Nucci"
+    },
+    {
+      "id": "longkai",
+      "nome": "Longkai"
+    },
+    {
+      "id": "manuela-lovo",
+      "nome": "Manuela-Lovo"
+    },
+    {
+      "id": "omnia",
+      "nome": "Omnia"
+    }
+  ],
+  "workouts": [
+    {
+      "id": "tmtvh34v5s6z9",
+      "nome": "Ping pong",
+      "giorni": [
+        0
+      ],
+      "esercizi": []
+    }
   ]
 }
