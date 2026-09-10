@@ -67,6 +67,16 @@
       "cliente": "hs-agency",
       "giorno": null,
       "gws": null
+    },
+    {
+      "id": "tmtv60sx3h3jo",
+      "creata": "2026-09-10T06:47:44.487Z",
+      "nome": "Chiama Agenti Di Nucci",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": null,
+      "gws": null
     }
   ]
 }
