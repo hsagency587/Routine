@@ -142,14 +142,5 @@
       "nome": "Fisio Leone"
     }
   ],
-  "workouts": [
-    {
-      "id": "tmtvh34v5s6z9",
-      "nome": "Ping pong",
-      "giorni": [
-        0
-      ],
-      "esercizi": []
-    }
-  ]
+  "workouts": []
 }
