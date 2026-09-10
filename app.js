@@ -2544,6 +2544,7 @@ $('confAnnulla').addEventListener('click', () => dlgConf.close());
 
 $('salva').addEventListener('click', () => pushTasks());
 $('salvaMenu').addEventListener('click', () => pushTasks());
+$('salvaWk').addEventListener('click', () => pushTasks());
 
 /* ---------------------------------------------------------- avviamento --- */
 
