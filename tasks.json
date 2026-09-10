@@ -145,11 +145,27 @@
   "workouts": [
     {
       "id": "tmtvosbo12fdw",
-      "nome": "Cali+wing chun",
+      "nome": "CALI + WINGCHUN",
       "giorni": [
         1,
         2,
         4
+      ],
+      "esercizi": []
+    },
+    {
+      "id": "tmtvupe02noht",
+      "nome": "ABS + FASCIA GLIDE",
+      "giorni": [
+        3
+      ],
+      "esercizi": []
+    },
+    {
+      "id": "tmtvupsmzi3cd",
+      "nome": "ROLL + STRETCH",
+      "giorni": [
+        6
       ],
       "esercizi": []
     }
