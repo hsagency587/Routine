@@ -2438,11 +2438,16 @@ async function pullTasks() {
 
   let j;
   try { j = await r.json(); } catch (e) { return; }
-  if (!j || !j.sha || tstore.known.indexOf(j.sha) >= 0) return;   /* gia' vista */
+  if (!j || !j.sha) return;
+  /* una sha gia' vista non si riapplica: potrebbe essere una risposta rimasta
+     in cache. Ma se e' proprio quella corrente e il telefono non ha piu'
+     quello che sta online, il telefono si e' svuotato: online e' la verita' */
+  if (tstore.known.indexOf(j.sha) >= 0 && j.sha !== tstore.sha) return;
 
   let data;
   try { data = JSON.parse(b64dec(j.content)); } catch (e) { paintSync('file online illeggibile', true); return; }
   const remote = normFile(data);
+  if (j.sha === tstore.sha && sameFile(remote, localFile())) return;   /* niente di nuovo */
 
   if (tstore.dirty) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
@@ -2479,6 +2484,48 @@ async function pushTasks(opts) {
 
   salvando = true; salvaErr = ''; salvaRetry = false;
   paintSalva();
+
+  /* Prima di scrivere si rilegge l'online e ci si unisce: cosi' nessuna
+     copia — nemmeno una rimasta indietro o svuotata — puo' cancellare
+     quello che sta online. Se l'online non si legge, non si scrive: la
+     copia locale resta e si riprova. */
+  if (!opts.retry) {
+    let cur;
+    try {
+      cur = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+    } catch (e) {
+      salvando = false; salvaErr = 'rete assente'; salvaRetry = true; paintSalva(); return;
+    }
+    if (cur.ok) {
+      let data = null;
+      try {
+        const j = await cur.json();
+        rememberSha(j.sha);
+        data = JSON.parse(b64dec(j.content));
+      } catch (e) { /* illeggibile: si scrive sopra */ }
+      if (data) {
+        const remote = normFile(data);
+        if (!sameFile(remote, localFile())) {
+          applicaFile(mergeFile(localFile(), remote));
+          saveLocal();
+          tidyTasks(); render(); paintDrawer(); paintWorkout();
+        }
+        if (sameFile(remote, localFile())) {
+          /* l'unione e' proprio l'online: non c'e' niente da scrivere */
+          salvando = false; tstore.dirty = false; saveLocal(); paintSalva();
+          paintSync('allineato alle ' + fmtTime.format(new Date()));
+          return;
+        }
+      }
+    } else if (cur.status !== 404) {
+      salvando = false;
+      salvaErr = cur.status === 401 ? 'token rifiutato'
+               : cur.status === 403 ? 'token senza permesso'
+               :                      'errore ' + cur.status;
+      salvaRetry = cur.status >= 500;
+      paintSalva(); paintSync(salvaErr, true); return;
+    }
+  }
 
   /* la fotografia di cio' che parte: se nel frattempo si tocca qualcosa,
      dirty deve restare acceso anche a salvataggio riuscito */
