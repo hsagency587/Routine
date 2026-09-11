@@ -2085,7 +2085,10 @@ function paintWorkout() {
   box.textContent = '';
   const oggi = oggiWk();
   const ws = tstore.workouts;
-  const delGiorno = g => ws.filter(w => w.giorni.indexOf(g) >= 0).sort(byNome);
+  /* in un giorno, prima i workout di quel giorno, poi quelli di tutti e sette */
+  const tutti = w => w.giorni.length === 7;
+  const delGiorno = g => ws.filter(w => w.giorni.indexOf(g) >= 0)
+                           .sort((x, y) => tutti(x) - tutti(y) || byNome(x, y));
 
   /* la settimana: un giorno per riga, oggi in verde */
   const tab = el('table', 'settimana');
