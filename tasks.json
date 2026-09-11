@@ -451,9 +451,44 @@
           "setrep": "",
           "rec": "",
           "desc": ""
+        },
+        {
+          "id": "tmtwj8gg0a7nm",
+          "nome": "Rotational Hop",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj91wemwxc",
+          "nome": "Heel raise arm swing",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj9pou8h4u",
+          "nome": "Heel Raised Trunk Rotation",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwja0rbmc66",
+          "nome": "Allungamento a terra",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwja6mi8q4o",
+          "nome": "Gentle padding",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
         }
       ],
-      "mod": "2026-09-11T05:44:36.396Z"
+      "mod": "2026-09-11T05:46:45.047Z"
     }
   ],
   "cancellate": {
