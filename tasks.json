@@ -21,16 +21,6 @@
       "creata": "2026-09-07T10:32:38.082Z"
     },
     {
-      "id": "tmtr3tdmljbvn",
-      "nome": "Recuperare Fireblood",
-      "desc": "",
-      "rank": "B",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-07T10:34:54.141Z"
-    },
-    {
       "id": "tmtrg59a25bi5",
       "nome": "Compra zenzero",
       "desc": "",
@@ -482,6 +472,7 @@
     "tmtrjvq0temn5": "2026-09-11T20:58:21.840Z",
     "tmtv43xsifqvd": "2026-09-11T20:58:30.461Z",
     "tmtv90emtv2rc": "2026-09-11T20:58:34.551Z",
-    "tmtv5ka1du75a": "2026-09-11T20:58:40.252Z"
+    "tmtv5ka1du75a": "2026-09-11T20:58:40.252Z",
+    "tmtr3tdmljbvn": "2026-09-11T20:59:20.237Z"
   }
 }
