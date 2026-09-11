@@ -179,6 +179,28 @@
       "giorno": null,
       "gws": null,
       "creata": "2026-09-10T08:11:24.821Z"
+    },
+    {
+      "id": "tmtwrjaln7lhp",
+      "creata": "2026-09-11T09:37:45.324Z",
+      "nome": "Scrivi tizio commento video",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-11T09:37:45.324Z"
+    },
+    {
+      "id": "tmtwrjg8ycr4z",
+      "creata": "2026-09-11T09:37:52.642Z",
+      "nome": "Ordine temu",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-11T09:37:52.642Z"
     }
   ],
   "clienti": [
