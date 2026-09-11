@@ -2026,8 +2026,8 @@ function moreWk(id) {
 }
 
 /* La tabella di un workout: il titolo in verde sulla prima riga, poi un
-   esercizio per riga in tre colonne. Un tocco sul nome apre la descrizione,
-   un tocco su set e rep o su rec apre l'esercizio. */
+   esercizio per riga in tre colonne. Un tocco proprio sul nome apre la
+   descrizione, un tocco su qualsiasi altro punto della riga apre l'esercizio. */
 function workoutTable(w) {
   const t = el('table', 'wk');
   const cg = el('colgroup');
@@ -2059,22 +2059,19 @@ function workoutTable(w) {
     const tr = el('tr', 'wes');
     tr.dataset.workout = w.id;
     tr.dataset.es = i;
-    tr.appendChild(el('td', 'wnome', e.nome));
+    const nc = el('td', 'wnome');
+    nc.appendChild(el('span', 'wtxt', e.nome));
+    tr.appendChild(nc);
     tr.appendChild(el('td', 'wset', e.setrep));
     tr.appendChild(el('td', 'wrec', e.rec));
     t.appendChild(tr);
 
-    /* la descrizione sta sotto, chiusa, con il bottone per modificare */
+    /* la descrizione sta sotto, chiusa */
     const dr = el('tr', 'wdesc');
     dr.hidden = true;
     const dd = el('td');
     dd.colSpan = 3;
     dd.appendChild(el('p', 'desc', e.desc || 'Nessuna descrizione'));
-    const mb = el('button', 'link wmod', 'Modifica');
-    mb.type = 'button';
-    mb.dataset.workout = w.id;
-    mb.dataset.es = i;
-    dd.appendChild(mb);
     dr.appendChild(dd);
     t.appendChild(dr);
   });
@@ -2136,14 +2133,10 @@ $('wkList').addEventListener('click', ev => {
   const m = ev.target.closest('button.more[data-workout]');
   if (m) { openWkEd(m.dataset.workout, null); return; }
 
-  const mod = ev.target.closest('button.wmod');
-  if (mod) { openExEd(mod.dataset.workout, +mod.dataset.es); return; }
-
-  /* un esercizio: il nome apre la descrizione, il resto della riga l'editor */
-  const cell = ev.target.closest('td');
-  const es = cell && cell.closest('tr.wes');
+  /* un esercizio: proprio il nome apre la descrizione, il resto della riga l'editor */
+  const es = ev.target.closest('tr.wes');
   if (es) {
-    if (cell.classList.contains('wnome')) es.nextElementSibling.hidden = !es.nextElementSibling.hidden;
+    if (ev.target.closest('.wtxt')) es.nextElementSibling.hidden = !es.nextElementSibling.hidden;
     else openExEd(es.dataset.workout, +es.dataset.es);
     return;
   }
