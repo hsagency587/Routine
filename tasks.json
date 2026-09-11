@@ -415,7 +415,11 @@
     {
       "id": "tmtvxugo6hs6m",
       "nome": "MORNING FASCIA ROUTINE",
-      "giorni": [],
+      "giorni": [
+        0,
+        1,
+        2
+      ],
       "esercizi": [
         {
           "id": "tmtwj6dv1plqq",
@@ -488,7 +492,7 @@
           "desc": ""
         }
       ],
-      "mod": "2026-09-11T05:46:45.047Z"
+      "mod": "2026-09-11T05:50:15.663Z"
     }
   ],
   "cancellate": {
