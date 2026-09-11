@@ -493,10 +493,9 @@ body.menu-open{overflow:hidden}
 .wset{color:var(--text-2)}
 .wrec{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
 .wk .vuoto{padding:var(--s3)}
-/* la descrizione, sotto la riga dell'esercizio, con il bottone Modifica */
+/* la descrizione, sotto la riga dell'esercizio */
 .wdesc td{border-top:0;padding:0 var(--s2) var(--s2)}
 .wdesc .desc{margin:0;padding:0}
-.wdesc .link{min-height:32px;font-size:12px}
 
 /* PROGRAMMAZIONE: la scritta e' un bottone, la freccetta dice se e' aperta */
 .progr{display:flex;align-items:center;width:100%;text-align:left;cursor:pointer;font-weight:700}
