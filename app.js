@@ -49,6 +49,14 @@ const RUNS_URL = 'https://api.github.com/repos/hsagency587/Routine/actions/workf
                + 'calendar.yml/runs?per_page=5&exclude_pull_requests=true';
 const BEAT_MS  = 2 * 60 * 1000;
 
+/* Un'app rimasta ferma piu' di tanto — in secondo piano, congelata dal
+   telefono — non si fida piu' di quello che ha in memoria e riparte da capo. */
+const RIAVVIO_MS = 15 * 60 * 1000;
+
+/* Una lettura che non risponde non deve restare appesa per sempre: senza
+   risposta la riga in alto continuerebbe a invecchiare un battito vecchio. */
+const scade = ms => (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(ms) : undefined;
+
 /* Le soglie del battito: fino a 10 minuti senza un giro riuscito e' normale,
    oltre 10 il ponte accumula ritardo, oltre 30 e' fermo davvero. */
 const LATE_MS     = 10 * 60 * 1000;
@@ -799,7 +807,7 @@ let beatSkew  = 0;                /* ora di GitHub meno ora del telefono (ms): i
    Date al browser, la stessa origine si': un file piccolo, senza cache. */
 async function leggiOra() {
   try {
-    const r = await fetch('manifest.webmanifest', { cache: 'no-store' });
+    const r = await fetch('manifest.webmanifest', { cache: 'no-store', signal: scade(15000) });
     const d = new Date(r.headers.get('date') || '');
     if (!isNaN(d.getTime())) beatSkew = d.getTime() - Date.now();
   } catch (e) { /* si resta con l'ora del telefono */ }
@@ -810,12 +818,12 @@ async function loadBeat() {
   if (beatQuota && Date.now() < beatQuota) { paintFresh(); return; }
   beatQuota = 0;
   try {
-    let r = await fetch(RUNS_URL, { cache: 'no-store', headers: beatAuth && token ? ghHeaders() : {} });
+    let r = await fetch(RUNS_URL, { cache: 'no-store', headers: beatAuth && token ? ghHeaders() : {}, signal: scade(15000) });
     /* un fine-grained token senza il permesso Actions puo' rispondere 403
        anche su un repo pubblico: si riprova anonimi e si resta anonimi */
     if ((r.status === 401 || r.status === 403) && beatAuth && token) {
       beatAuth = false;
-      r = await fetch(RUNS_URL, { cache: 'no-store' });
+      r = await fetch(RUNS_URL, { cache: 'no-store', signal: scade(15000) });
     }
     /* la quota anonima e' per indirizzo, e sul 5G l'indirizzo e' condiviso:
        finita, si aspetta l'ora del reset invece di gridare al lupo */
@@ -2560,7 +2568,7 @@ async function pushTasks(opts) {
    finire la richiesta anche se la pagina muore. Di solito basta, non sempre:
    per questo la copia locale resta comunque, e Salva ricompare alla riapertura. */
 function salvagente() {
-  if (!tstore.dirty || !token || salvando) return;
+  if (riavvio || !tstore.dirty || !token || salvando) return;
   pushTasks({ keepalive: true });
 }
 
@@ -2614,16 +2622,41 @@ loadCalendar();
 loadBeat();                       /* subito, all'apertura */
 pullTasks();                      /* il serbatoio, subito */
 
-setInterval(() => { checkDay(); paintFresh(); }, 30000);   /* invecchia la riga, e vede la mezzanotte */
+/* Un'app rimasta ferma a lungo riparte da capo invece di fidarsi di quello
+   che ha in memoria: le task, le spunte e il battito sono di quando si e'
+   fermata, e una copia rimasta indietro ha gia' cancellato lavoro fatto
+   altrove e gridato "FERMO" a un ponte sano. Ricaricare rilegge il telefono
+   e l'online, e prende anche l'app nuova se nel frattempo e' uscita. Le
+   modifiche non salvate stanno gia' nel telefono: Salva ricompare da solo. */
+let vivo = Date.now();            /* l'ultima volta che l'app ha girato davvero */
+let nascostoDa = 0;               /* da quando sta in secondo piano */
+let riavvio = false;
+function ripartenza() {
+  const now = Date.now();
+  if (document.hidden) { vivo = now; return false; }
+  const ferma = now - (nascostoDa || vivo);
+  vivo = now; nascostoDa = 0;
+  if (ferma < RIAVVIO_MS || riavvio) return false;
+  riavvio = true;
+  location.reload();
+  return true;
+}
+
+/* invecchia la riga, vede la mezzanotte, e si accorge di essere rimasta ferma */
+setInterval(() => { if (ripartenza()) return; checkDay(); paintFresh(); }, 30000);
 setInterval(loadCalendar, 30000);
 setInterval(() => { loadBeat(); riprovaSalva(); }, BEAT_MS);   /* solo mentre l'app resta aperta */
 
 /* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve.
+   Finche' il battito nuovo non arriva, quello vecchio non si mostra: un
+   ritardo di dieci minuti sarebbe solo il tempo passato in tasca.
    Chiudendola parte il salvagente: un tentativo di salvare quello che e'
    rimasto in sospeso, nei pochi istanti che il browser concede. */
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) salvagente();
-  else { checkDay(); loadCalendar(); loadBeat(); pullTasks(); riprovaSalva(); }
+  if (document.hidden) { nascostoDa = Date.now(); salvagente(); return; }
+  if (ripartenza()) return;
+  beatOk = false;
+  checkDay(); loadCalendar(); loadBeat(); pullTasks(); riprovaSalva();
 });
 window.addEventListener('pagehide', salvagente);
 
