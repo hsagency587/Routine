@@ -41,16 +41,6 @@
       "creata": "2026-09-07T16:20:03.770Z"
     },
     {
-      "id": "tmtrjvq0temn5",
-      "nome": "CHECK NASPI",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-07T18:04:37.373Z"
-    },
-    {
       "id": "tmtrp1iuw5f9v",
       "nome": "Compra acqua",
       "desc": "",
@@ -59,26 +49,6 @@
       "giorno": null,
       "gws": null,
       "creata": "2026-09-07T20:29:06.104Z"
-    },
-    {
-      "id": "tmtv43xsifqvd",
-      "nome": "Finisci di scrivere la scheda",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T05:54:11.538Z"
-    },
-    {
-      "id": "tmtv5ka1du75a",
-      "nome": "Organizziamo client work",
-      "desc": "",
-      "rank": "A",
-      "cliente": "hs-agency",
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T06:34:53.521Z"
     },
     {
       "id": "tmtv60sx3h3jo",
@@ -171,16 +141,6 @@
       "creata": "2026-09-10T07:16:48.975Z"
     },
     {
-      "id": "tmtv90emtv2rc",
-      "nome": "MONTAGNA",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T08:11:24.821Z"
-    },
-    {
       "id": "tmtwrjaln7lhp",
       "nome": "Scrivi tizio commento video",
       "desc": "",
@@ -189,7 +149,7 @@
       "giorno": null,
       "gws": null,
       "creata": "2026-09-11T09:37:45.324Z",
-      "mod": "2026-09-11T09:37:45.324Z"
+      "mod": "2026-09-11T20:58:57.173Z"
     },
     {
       "id": "tmtwrjg8ycr4z",
@@ -518,6 +478,10 @@
     "ev:buortnuba2fgbb21ttpcq2gkl4@google.com": "2026-09-11T11:29:04.288Z",
     "tmtt4bg0p84g2": "2026-09-11T11:29:04.288Z",
     "tmtt4bpzkftwk": "2026-09-11T11:29:04.288Z",
-    "tmtt4nfn6v6v0": "2026-09-11T11:29:04.288Z"
+    "tmtt4nfn6v6v0": "2026-09-11T11:29:04.288Z",
+    "tmtrjvq0temn5": "2026-09-11T20:58:21.840Z",
+    "tmtv43xsifqvd": "2026-09-11T20:58:30.461Z",
+    "tmtv90emtv2rc": "2026-09-11T20:58:34.551Z",
+    "tmtv5ka1du75a": "2026-09-11T20:58:40.252Z"
   }
 }
