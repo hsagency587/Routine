@@ -416,8 +416,44 @@
       "id": "tmtvxugo6hs6m",
       "nome": "MORNING FASCIA ROUTINE",
       "giorni": [],
-      "esercizi": [],
-      "mod": "2026-09-10T19:46:37.926Z"
+      "esercizi": [
+        {
+          "id": "tmtwj6dv1plqq",
+          "nome": "Collo",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj6kvoktao",
+          "nome": "Shrugs",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj6vsmu01a",
+          "nome": "Over the world",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj77jqgu9p",
+          "nome": "Lounge diagonal",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmtwj7de1xgfm",
+          "nome": "Lounge frontal",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-09-11T05:44:36.396Z"
     }
   ],
   "cancellate": {
