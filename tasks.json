@@ -182,24 +182,24 @@
     },
     {
       "id": "tmtwrjaln7lhp",
-      "creata": "2026-09-11T09:37:45.324Z",
       "nome": "Scrivi tizio commento video",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": null,
       "gws": null,
+      "creata": "2026-09-11T09:37:45.324Z",
       "mod": "2026-09-11T09:37:45.324Z"
     },
     {
       "id": "tmtwrjg8ycr4z",
-      "creata": "2026-09-11T09:37:52.642Z",
       "nome": "Ordine temu",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": null,
       "gws": null,
+      "creata": "2026-09-11T09:37:52.642Z",
       "mod": "2026-09-11T09:37:52.642Z"
     }
   ],
@@ -515,10 +515,9 @@
   ],
   "cancellate": {
     "tmtvupe02noht": "2026-09-10T19:33:21.329Z",
-    "ev:buortnuba2fgbb21ttpcq2gkl4@google.com": "2026-09-11T09:02:57.489Z",
-    "tmtt4bg0p84g2": "2026-09-11T09:02:57.489Z",
-    "tmtt4bpzkftwk": "2026-09-11T09:02:57.489Z",
-    "tmtt4nfn6v6v0": "2026-09-11T09:02:57.489Z"
-  },
-  "ripristinato": "2026-09-11T12:12:01Z"
+    "ev:buortnuba2fgbb21ttpcq2gkl4@google.com": "2026-09-11T11:29:04.288Z",
+    "tmtt4bg0p84g2": "2026-09-11T11:29:04.288Z",
+    "tmtt4bpzkftwk": "2026-09-11T11:29:04.288Z",
+    "tmtt4nfn6v6v0": "2026-09-11T11:29:04.288Z"
+  }
 }
