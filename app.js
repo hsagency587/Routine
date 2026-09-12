@@ -2350,6 +2350,15 @@ $('impostazioniForm').addEventListener('submit', () => {
 });
 $('tokenAnnulla').addEventListener('click', () => dlgImp.close());
 
+/* La via d'uscita: se il telefono mostra meno di quello che sta online, la
+   sua copia si butta e si riprende l'online com'e'. */
+$('riprendiOnline').addEventListener('click', () => {
+  if (!confirm('La copia del telefono si butta e si riprende quello che c\'e\' online. Vado?')) return;
+  dlgImp.close();
+  paintSync('leggo l\'online…');
+  pullTasks({ forza: true });
+});
+
 /* Una lettura autenticata: se passa, il token e' buono. Scrivere lo si
    scopre al primo Salva, e se manca il permesso lo dice lui. */
 async function provaToken() {
@@ -2413,43 +2422,61 @@ function paintSync(msg, err) {
   s.classList.toggle('err', syncErr);
 }
 
-/* Il file dal branch task. Senza token si legge lo stesso. Se il telefono ha
-   modifiche non salvate, vince il telefono: online si guarda soltanto. */
-async function pullTasks() {
+/* Il file dal branch task. Senza token si legge lo stesso. Online e' la
+   verita': quello che c'e' online si applica, e se il telefono ha modifiche
+   non salvate ci si unisce senza perdere niente. Una lettura fallita non
+   resta muta: lo dice nella riga di sync e si riprova al passo del battito.
+   Con `forza` la copia del telefono si butta e si prende l'online com'e'. */
+let pullKo = false;
+async function pullTasks(opts) {
+  opts = opts || {};
+  const ko = msg => { pullKo = true; paintSync(msg, true); };
+  const leggi = h => fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: h, cache: 'no-store', signal: scade(20000) });
   let r;
   try {
-    r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { headers: ghHeaders(), cache: 'no-store' });
+    r = await leggi(ghHeaders());
   } catch (e) {
-    return;                       /* offline: si va avanti con la copia locale */
+    ko(navigator.onLine === false ? 'offline: copia del telefono' : 'online non letto: rete');
+    return;
   }
   /* token scaduto o revocato: lo si dice, ma leggere si puo' lo stesso, anonimi.
      L'avviso resta anche dopo la rilettura, altrimenti "allineato" lo coprirebbe. */
   let tokenKo = false;
   if (r.status === 401 && token) {
     tokenKo = true;
-    paintSync('token rifiutato', true);
-    try {
-      r = await fetch(TASK_API + '?ref=' + TASK_BRANCH, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
-    } catch (e) { return; }
+    try { r = await leggi({ Accept: 'application/vnd.github+json' }); }
+    catch (e) { ko('token rifiutato'); return; }
   }
-  const fine = msg => paintSync(tokenKo ? 'token rifiutato' : msg, tokenKo);
-  if (r.status === 404) { if (!tstore.sha) fine('nessun file online ancora'); return; }
-  if (!r.ok) return;
+  const fine = msg => { pullKo = false; paintSync(tokenKo ? 'token rifiutato' : msg, tokenKo); };
+  if (r.status === 404) {
+    if (!tstore.sha) fine('nessun file online ancora'); else ko('online non letto: file assente');
+    return;
+  }
+  if ((r.status === 403 || r.status === 429) && r.headers.get('x-ratelimit-remaining') === '0') {
+    const reset = (+r.headers.get('x-ratelimit-reset') || 0) * 1000;
+    ko('quota API esaurita' + (reset ? ' fino alle ' + fmtTime.format(new Date(reset)) : '')
+       + (token ? '' : ': serve il token'));
+    return;
+  }
+  if (!r.ok) { ko('online non letto: errore ' + r.status); return; }
 
   let j;
-  try { j = await r.json(); } catch (e) { return; }
-  if (!j || !j.sha) return;
-  /* una sha gia' vista non si riapplica: potrebbe essere una risposta rimasta
-     in cache. Ma se e' proprio quella corrente e il telefono non ha piu'
-     quello che sta online, il telefono si e' svuotato: online e' la verita' */
-  if (tstore.known.indexOf(j.sha) >= 0 && j.sha !== tstore.sha) return;
-
+  try { j = await r.json(); } catch (e) { ko('online non letto: risposta rotta'); return; }
+  if (!j || !j.sha || typeof j.content !== 'string') { ko('online non letto: risposta rotta'); return; }
   let data;
-  try { data = JSON.parse(b64dec(j.content)); } catch (e) { paintSync('file online illeggibile', true); return; }
+  try { data = JSON.parse(b64dec(j.content)); } catch (e) { ko('file online illeggibile'); return; }
   const remote = normFile(data);
-  if (j.sha === tstore.sha && sameFile(remote, localFile())) return;   /* niente di nuovo */
+  pullKo = false;
 
-  if (tstore.dirty) {
+  if (!opts.forza) {
+    /* una sha gia' vista, diversa da quella corrente, e' una risposta rimasta
+       in cache: non si torna indietro. Quella corrente invece si riapplica se
+       il telefono non ha piu' quello che sta online: si era svuotato */
+    if (tstore.known.indexOf(j.sha) >= 0 && j.sha !== tstore.sha) return;
+    if (j.sha === tstore.sha && sameFile(remote, localFile())) return;   /* niente di nuovo */
+  }
+
+  if (tstore.dirty && !opts.forza) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
     if (sameFile(remote, localFile())) {
       rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
@@ -2473,7 +2500,7 @@ async function pullTasks() {
   tstore.dirty = false;
   saveLocal();
   tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
-  fine('allineato alle ' + fmtTime.format(new Date()));
+  fine((opts.forza ? 'ripreso dall\'online alle ' : 'allineato alle ') + fmtTime.format(new Date()));
 }
 
 /* Un commit solo, con tutto dentro. */
@@ -2667,7 +2694,28 @@ paintDrawer();
 paintSalva();
 loadCalendar();
 loadBeat();                       /* subito, all'apertura */
+paintSync('leggo l\'online…');
 pullTasks();                      /* il serbatoio, subito */
+
+/* Un'altra finestra della stessa app — la PWA e una scheda di Chrome, o due
+   schede — ha scritto la copia del telefono: si prende, cosi' due finestre
+   non si fanno la guerra sulla stessa memoria e nessuna riparte da una copia
+   che l'altra ha gia' superato. Con modifiche in sospeso ci si unisce. */
+window.addEventListener('storage', ev => {
+  if (ev.key !== TASKS_KEY || !ev.newValue) return;
+  const altra = readStore(TASKS_KEY);
+  if (!Array.isArray(altra.tasks)) return;
+  const sua = normFile(altra);
+  if (tstore.dirty && !sameFile(sua, localFile())) {
+    applicaFile(mergeFile(localFile(), sua));
+  } else {
+    applicaFile(sua);
+    tstore.dirty = !!altra.dirty;
+  }
+  if (typeof altra.sha === 'string') tstore.sha = altra.sha;
+  if (Array.isArray(altra.known)) tstore.known = altra.known;
+  tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva(); paintSync();
+});
 
 /* Un'app rimasta ferma a lungo riparte da capo invece di fidarsi di quello
    che ha in memoria: le task, le spunte e il battito sono di quando si e'
@@ -2692,7 +2740,7 @@ function ripartenza() {
 /* invecchia la riga, vede la mezzanotte, e si accorge di essere rimasta ferma */
 setInterval(() => { if (ripartenza()) return; checkDay(); paintFresh(); }, 30000);
 setInterval(loadCalendar, 30000);
-setInterval(() => { loadBeat(); riprovaSalva(); }, BEAT_MS);   /* solo mentre l'app resta aperta */
+setInterval(() => { loadBeat(); riprovaSalva(); if (pullKo) pullTasks(); }, BEAT_MS);   /* solo mentre l'app resta aperta */
 
 /* Riaprendola si ricontrolla tutto: e' il momento in cui la barra serve.
    Finche' il battito nuovo non arriva, quello vecchio non si mostra: un
