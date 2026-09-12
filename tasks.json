@@ -1,16 +1,6 @@
 {
   "tasks": [
     {
-      "id": "tmtr3pgsdr51h",
-      "nome": "Ordini Temu",
-      "desc": "",
-      "rank": "B",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-07T10:31:51.613Z"
-    },
-    {
       "id": "tmtr3qgn67781",
       "nome": "Check Crypto Gem",
       "desc": "",
@@ -151,6 +141,17 @@
       "gws": null,
       "creata": "2026-09-11T09:37:52.642Z",
       "mod": "2026-09-11T09:37:52.642Z"
+    },
+    {
+      "id": "tmtyhe4kt4qew",
+      "creata": "2026-09-12T14:29:20.429Z",
+      "nome": "LOOM ADS",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-12T14:29:20.429Z"
     }
   ],
   "clienti": [
@@ -473,6 +474,7 @@
     "tmtv43xsifqvd": "2026-09-11T20:58:30.461Z",
     "tmtv90emtv2rc": "2026-09-11T20:58:34.551Z",
     "tmtv5ka1du75a": "2026-09-11T20:58:40.252Z",
-    "tmtr3tdmljbvn": "2026-09-11T20:59:20.237Z"
+    "tmtr3tdmljbvn": "2026-09-11T20:59:20.237Z",
+    "tmtr3pgsdr51h": "2026-09-12T14:29:26.110Z"
   }
 }
