@@ -275,6 +275,17 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0}
   display:inline-flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:700;letter-spacing:0;
 }
+/* il cliente della task, accanto al nome: l'agenzia e` oro come nel menu`.
+   Con il cliente il titolo non spinge piu` (.hascli), cosi` i due stanno
+   attaccati invece che ai due capi della riga. */
+.row.hascli .ttl{flex:0 1 auto}
+.tcli{
+  flex:0 1 auto;min-width:0;max-width:45%;
+  font-size:11px;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tcli.oro{color:var(--gold)}
+
 .rA{background:rgba(255,69,58,.22);color:#ff8a80}
 .rB{background:rgba(245,165,36,.2);color:var(--stale)}
 .rC{background:rgba(61,220,132,.16);color:var(--accent)}
@@ -360,7 +371,7 @@ body.menu-open{overflow:hidden}
 }
 .trow:active{background:var(--surface-2)}
 .tname{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.twhen{flex:0 0 auto;font-size:11px;color:var(--muted)}
+.twhen{flex:0 0 auto;margin-left:auto;font-size:11px;color:var(--muted)}
 /* schedulata: il bordino giallo che chiedevi */
 .trow.sched{box-shadow:inset 3px 0 0 var(--giallo)}
 /* evento del calendario con un cliente: bordino verde, e` di Google non del serbatoio */
