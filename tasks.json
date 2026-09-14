@@ -23,12 +23,13 @@
     {
       "id": "tmtv60sx3h3jo",
       "nome": "Chiama Agenti Di Nucci",
-      "desc": "",
+      "desc": "Scrivi mail e procedi",
       "rank": "A",
       "cliente": "di-nucci",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T06:47:44.487Z"
+      "creata": "2026-09-10T06:47:44.487Z",
+      "mod": "2026-09-14T09:29:25.378Z"
     },
     {
       "id": "tmtv6v0vny2gs",
@@ -56,10 +57,10 @@
       "desc": "",
       "rank": "B",
       "cliente": "fisio-leone",
-      "giorno": null,
-      "gws": null,
+      "giorno": "2026-09-14",
+      "gws": 3,
       "creata": "2026-09-10T07:13:45.774Z",
-      "mod": "2026-09-14T09:10:54.411Z"
+      "mod": "2026-09-14T09:29:55.889Z"
     },
     {
       "id": "tmtv6zdwanob2",
@@ -109,11 +110,12 @@
       "id": "tmtv726z347jt",
       "nome": "Volantino Di nucci",
       "desc": "",
-      "rank": "B",
+      "rank": "A",
       "cliente": "di-nucci",
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T07:16:48.975Z"
+      "giorno": "2026-09-14",
+      "gws": 3,
+      "creata": "2026-09-10T07:16:48.975Z",
+      "mod": "2026-09-14T09:29:53.323Z"
     },
     {
       "id": "tmtwrjg8ycr4z",
@@ -121,10 +123,13 @@
       "desc": "",
       "rank": "A",
       "cliente": null,
-      "giorno": null,
-      "gws": null,
+      "giorno": "2026-09-14",
+      "gws": 0,
       "creata": "2026-09-11T09:37:52.642Z",
-      "mod": "2026-09-11T09:37:52.642Z"
+      "mod": "2026-09-14T09:30:52.959Z",
+      "altre": [
+        5
+      ]
     },
     {
       "id": "tmtyhe4kt4qew",
@@ -142,11 +147,11 @@
       "creata": "2026-09-14T09:11:57.702Z",
       "nome": "Bigliettini da visita",
       "desc": "",
-      "rank": "B",
+      "rank": "A",
       "cliente": "manuela-lovo",
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-14T09:11:57.702Z"
+      "giorno": "2026-09-14",
+      "gws": 3,
+      "mod": "2026-09-14T09:30:04.342Z"
     }
   ],
   "clienti": [
