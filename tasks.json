@@ -144,17 +144,6 @@
       "mod": "2026-09-12T14:29:20.429Z"
     },
     {
-      "id": "tmu10xog6wy4j",
-      "creata": "2026-09-14T09:11:57.702Z",
-      "nome": "Bigliettini da visita",
-      "desc": "",
-      "rank": "A",
-      "cliente": "manuela-lovo",
-      "giorno": "2026-09-14",
-      "gws": 3,
-      "mod": "2026-09-14T09:30:04.342Z"
-    },
-    {
       "id": "tmu11ne8o26gy",
       "creata": "2026-09-14T09:31:57.528Z",
       "nome": "Logo",
@@ -506,6 +495,7 @@
     "tmtr3tdmljbvn": "2026-09-11T20:59:20.237Z",
     "tmtr3pgsdr51h": "2026-09-12T14:29:26.110Z",
     "tmtwrjaln7lhp": "2026-09-14T09:10:27.687Z",
-    "tmtrg59a25bi5": "2026-09-14T09:11:30.598Z"
+    "tmtrg59a25bi5": "2026-09-14T09:11:30.598Z",
+    "tmu10xog6wy4j": "2026-09-14T12:26:58.004Z"
   }
 }
