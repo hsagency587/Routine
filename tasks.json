@@ -158,6 +158,17 @@
       "giorno": "2026-09-14",
       "gws": 2,
       "mod": "2026-09-14T09:33:40.264Z"
+    },
+    {
+      "id": "tmu1p3v9plmfr",
+      "creata": "2026-09-14T20:28:37.261Z",
+      "nome": "PRELEVARE",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-15",
+      "gws": 0,
+      "mod": "2026-09-14T20:28:37.261Z"
     }
   ],
   "clienti": [
