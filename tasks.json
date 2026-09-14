@@ -11,16 +11,6 @@
       "creata": "2026-09-07T10:32:38.082Z"
     },
     {
-      "id": "tmtrg59a25bi5",
-      "nome": "Compra zenzero",
-      "desc": "",
-      "rank": "B",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-07T16:20:03.770Z"
-    },
-    {
       "id": "tmtrp1iuw5f9v",
       "nome": "Compra acqua",
       "desc": "",
@@ -65,50 +55,55 @@
       "nome": "Citazioni Paolo",
       "desc": "",
       "rank": "B",
-      "cliente": null,
+      "cliente": "fisio-leone",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T07:13:45.774Z"
+      "creata": "2026-09-10T07:13:45.774Z",
+      "mod": "2026-09-14T09:10:54.411Z"
     },
     {
       "id": "tmtv6zdwanob2",
       "nome": "GBP anna",
       "desc": "",
       "rank": "B",
-      "cliente": null,
+      "cliente": "ristorante-da-anna",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T07:14:37.978Z"
+      "creata": "2026-09-10T07:14:37.978Z",
+      "mod": "2026-09-14T09:10:59.705Z"
     },
     {
       "id": "tmtv705o06gz2",
       "nome": "Audit SEO anna",
       "desc": "",
       "rank": "B",
-      "cliente": null,
+      "cliente": "ristorante-da-anna",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T07:15:13.968Z"
+      "creata": "2026-09-10T07:15:13.968Z",
+      "mod": "2026-09-14T09:10:47.622Z"
     },
     {
       "id": "tmtv70k47d2xo",
       "nome": "Omnia Placeholder",
       "desc": "",
       "rank": "B",
-      "cliente": null,
+      "cliente": "omnia",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T07:15:32.695Z"
+      "creata": "2026-09-10T07:15:32.695Z",
+      "mod": "2026-09-14T09:11:09.766Z"
     },
     {
       "id": "tmtv70wfjyji4",
       "nome": "Omnia citazioni audit",
       "desc": "",
       "rank": "B",
-      "cliente": null,
+      "cliente": "omnia",
       "giorno": null,
       "gws": null,
-      "creata": "2026-09-10T07:15:48.655Z"
+      "creata": "2026-09-10T07:15:48.655Z",
+      "mod": "2026-09-14T09:11:14.887Z"
     },
     {
       "id": "tmtv726z347jt",
@@ -119,17 +114,6 @@
       "giorno": null,
       "gws": null,
       "creata": "2026-09-10T07:16:48.975Z"
-    },
-    {
-      "id": "tmtwrjaln7lhp",
-      "nome": "Scrivi tizio commento video",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-11T09:37:45.324Z",
-      "mod": "2026-09-11T20:58:57.173Z"
     },
     {
       "id": "tmtwrjg8ycr4z",
@@ -152,6 +136,17 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-12T14:29:20.429Z"
+    },
+    {
+      "id": "tmu10xog6wy4j",
+      "creata": "2026-09-14T09:11:57.702Z",
+      "nome": "Bigliettini da visita",
+      "desc": "",
+      "rank": "B",
+      "cliente": "manuela-lovo",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-14T09:11:57.702Z"
     }
   ],
   "clienti": [
@@ -475,6 +470,8 @@
     "tmtv90emtv2rc": "2026-09-11T20:58:34.551Z",
     "tmtv5ka1du75a": "2026-09-11T20:58:40.252Z",
     "tmtr3tdmljbvn": "2026-09-11T20:59:20.237Z",
-    "tmtr3pgsdr51h": "2026-09-12T14:29:26.110Z"
+    "tmtr3pgsdr51h": "2026-09-12T14:29:26.110Z",
+    "tmtwrjaln7lhp": "2026-09-14T09:10:27.687Z",
+    "tmtrg59a25bi5": "2026-09-14T09:11:30.598Z"
   }
 }
