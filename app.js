@@ -471,6 +471,15 @@ function checkRow(id, label, cls, on, choiceOf) {
   return l;
 }
 
+/* Il cliente di una task, attaccato al suo nome: compare solo se la task e'
+   assegnata, e un'agenzia si riconosce dall'oro, come nel menu'. */
+function cliNode(l, id) {
+  const c = id ? findCliente(id) : null;
+  if (!c) return;
+  l.classList.add('hascli');      /* il titolo smette di spingere: il nome gli sta accanto */
+  l.appendChild(el('span', 'tcli' + (c.agenzia ? ' oro' : ''), c.nome));
+}
+
 function eventNode(e, on) {
   const li = el('li', 'ev' + (e.alarm ? ' alarm' : ''));
   const bar = el('div', 'evrow');
@@ -483,6 +492,9 @@ function eventNode(e, on) {
   l.appendChild(i);
   l.appendChild(el('span', 'time', e.txt));
   l.appendChild(el('span', 'ttl', e.title));
+  /* l'evento a cui si e' dato un cliente lo porta scritto: il record sta fra
+     le task, con l'id dell'evento davanti */
+  cliNode(l, (findTask('ev:' + e.id) || {}).cliente);
   bar.appendChild(l);
 
   if (e.desc) {
@@ -527,6 +539,7 @@ function taskNode(x, on) {
   l.appendChild(i);
   l.appendChild(el('span', 'rank r' + x.rank, x.rank));
   l.appendChild(el('span', 'ttl', x.nome));
+  cliNode(l, x.cliente);
   bar.appendChild(l);
 
   if (x.desc) {
@@ -569,6 +582,7 @@ function ghostNode(x, id) {
   l.appendChild(i);
   l.appendChild(el('span', 'rank r' + x.rank, x.rank));
   l.appendChild(el('span', 'ttl', x.nome));
+  cliNode(l, x.cliente);
   l.appendChild(el('span', 'twhen', 'nel serbatoio'));
   bar.appendChild(l);
   li.appendChild(bar);
