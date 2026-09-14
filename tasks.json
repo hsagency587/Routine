@@ -133,17 +133,6 @@
       "mod": "2026-09-14T09:31:06.880Z"
     },
     {
-      "id": "tmtyhe4kt4qew",
-      "creata": "2026-09-12T14:29:20.429Z",
-      "nome": "LOOM ADS",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-12T14:29:20.429Z"
-    },
-    {
       "id": "tmu11ne8o26gy",
       "creata": "2026-09-14T09:31:57.528Z",
       "nome": "Logo",
@@ -496,6 +485,7 @@
     "tmtr3pgsdr51h": "2026-09-12T14:29:26.110Z",
     "tmtwrjaln7lhp": "2026-09-14T09:10:27.687Z",
     "tmtrg59a25bi5": "2026-09-14T09:11:30.598Z",
-    "tmu10xog6wy4j": "2026-09-14T12:26:58.004Z"
+    "tmu10xog6wy4j": "2026-09-14T12:26:58.004Z",
+    "tmtyhe4kt4qew": "2026-09-14T20:01:18.078Z"
   }
 }
