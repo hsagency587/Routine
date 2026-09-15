@@ -158,6 +158,28 @@
       "giorno": "2026-09-14",
       "gws": 2,
       "mod": "2026-09-14T09:33:40.264Z"
+    },
+    {
+      "id": "tmu2esuoraqma",
+      "creata": "2026-09-15T08:27:53.307Z",
+      "nome": "Biglietti da visita",
+      "desc": "",
+      "rank": "B",
+      "cliente": "di-nucci",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-15T08:27:53.307Z"
+    },
+    {
+      "id": "tmu2etaxntjal",
+      "creata": "2026-09-15T08:28:14.363Z",
+      "nome": "Stand recensioni",
+      "desc": "",
+      "rank": "B",
+      "cliente": "di-nucci",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-15T08:28:14.363Z"
     }
   ],
   "clienti": [
