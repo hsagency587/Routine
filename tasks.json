@@ -178,6 +178,21 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-15T08:28:14.363Z"
+    },
+    {
+      "id": "tmu327y73mjla",
+      "creata": "2026-09-15T19:23:28.863Z",
+      "nome": "INCONTRO",
+      "desc": "PC\nBiglietto sifu\nAcqua\n",
+      "rank": "A",
+      "cliente": "fisio-leone",
+      "giorno": "2026-09-16",
+      "gws": 0,
+      "altre": [
+        1,
+        2
+      ],
+      "mod": "2026-09-15T19:23:28.864Z"
     }
   ],
   "clienti": [
