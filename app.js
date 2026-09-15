@@ -1485,16 +1485,24 @@ function paintDrawer() {
   }
 
   for (const o of gruppi) {
-    /* la testata e' un bottone: chiude e riapre le task del cliente */
+    /* la testata e' un bottone: chiude e riapre le task del cliente. Il +
+       sta fuori, dov'era la freccetta: apre una task nuova gia' sua, e un
+       tocco sul + non deve chiudere l'elenco */
     const chiuso = !!chiusi[o.g.id];
+    const head = el('div', 'grphead');
     const h = el('button', 'grp grpcli');
     h.type = 'button';
     h.dataset.cliente = o.g.id;
     h.setAttribute('aria-expanded', chiuso ? 'false' : 'true');
     h.appendChild(el('span', 'grpnome', o.g.nome));
-    h.appendChild(el('span', 'grpnum' + (o.g.agenzia ? ' oro' : ''), String(o.tasks.length)));
-    h.appendChild(el('span', 'chip-frec'));
-    box.appendChild(h);
+    h.appendChild(el('span', 'grpnum', String(o.tasks.length)));
+    head.appendChild(h);
+    const p = el('button', 'grpplus', '+');
+    p.type = 'button';
+    p.dataset.nuova = o.g.id;
+    p.setAttribute('aria-label', 'Nuova task per ' + o.g.nome);
+    head.appendChild(p);
+    box.appendChild(head);
     const ul = el('ul', 'trows');
     ul.hidden = chiuso;
     for (const x of o.tasks) ul.appendChild(trowNode(x, false));
@@ -1531,6 +1539,8 @@ $('impostazioniBtn').addEventListener('click', openImpostazioni);
 
 /* tutta la riga apre l'editor: i tre puntini sono il segnale, non l'unico posto */
 $('drawerList').addEventListener('click', ev => {
+  const p = ev.target.closest('button.grpplus[data-nuova]');
+  if (p) { openEditor(null, { cliente: p.dataset.nuova }); return; }
   const h = ev.target.closest('.grpcli[data-cliente]');
   if (h) {
     const id = h.dataset.cliente;
@@ -1654,7 +1664,7 @@ function openEditor(id, preset) {
   }
   ed = x ? { id: x.id, rank: x.rank, cliente: x.cliente, giorno: x.giorno, gws: x.gws,
              altre: (x.altre || []).slice() }
-         : { id: null, rank: 'B', cliente: null,
+         : { id: null, rank: 'B', cliente: (preset && preset.cliente) || null,
              giorno: (preset && preset.giorno) || null,
              gws: preset && preset.gws != null ? preset.gws : null, altre: [] };
   if (ed.giorno && ed.gws == null) ed.gws = 0;

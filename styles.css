@@ -349,19 +349,25 @@ body.menu-open{overflow:hidden}
 
 .drawer-list{flex:1;overflow-y:auto;padding:var(--s2) 0 var(--s4)}
 .grp{margin:0;padding:var(--s3) var(--s4) var(--s1);font-size:11px;letter-spacing:.08em;color:var(--muted)}
-/* le testate per cliente: nome e quante task ha. Il numero c'e` solo se e`
-   maggiore di zero: verde per i clienti, oro per le agenzie mie */
+/* le testate per cliente: nome, quante task ha, e il + che ne apre una nuova
+   gia` sua. Il + sta fuori dal bottone che apre e chiude: altrimenti sarebbe
+   un bottone dentro un bottone */
+.grphead{display:flex;align-items:center;padding-right:var(--s3)}
+.grphead .grpcli{flex:1;min-width:0;padding-right:var(--s2)}
+.grpplus{
+  flex:none;width:32px;height:32px;
+  border-radius:var(--radius);
+  font-size:20px;line-height:1;color:var(--accent);
+}
+.grpplus:active{background:var(--surface-2)}
 .grpcli{
   display:flex;align-items:center;gap:var(--s2);width:100%;
   letter-spacing:0;font-size:13px;color:var(--text);text-align:left;cursor:pointer;
 }
 .grpcli:active{background:var(--surface-2)}
-/* la freccetta dice se le task del cliente sono aperte o chiuse */
-.grpcli .chip-frec{flex:none;margin:-3px var(--s1) 0 var(--s1);color:var(--muted)}
-.grpcli[aria-expanded="false"] .chip-frec{transform:rotate(-45deg);margin-top:0}
 .grpnome{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.grpnum{flex:none;margin-left:auto;font-size:12px;font-weight:600;color:var(--accent);font-variant-numeric:tabular-nums}
-.grpnum.oro{color:var(--gold)}
+/* quante task ha: sta buono in grigio, il verde adesso e` del + */
+.grpnum{flex:none;margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
 .trows{list-style:none;margin:0;padding:0}
 .trow{
   display:flex;align-items:center;gap:var(--s3);
