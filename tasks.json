@@ -168,6 +168,17 @@
         2
       ],
       "mod": "2026-09-16T05:00:19.627Z"
+    },
+    {
+      "id": "tmu4fq7fs4foj",
+      "creata": "2026-09-16T18:29:21.832Z",
+      "nome": "Ordine cartine",
+      "desc": "",
+      "rank": "B",
+      "cliente": "longkai",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-16T18:29:21.832Z"
     }
   ],
   "clienti": [
