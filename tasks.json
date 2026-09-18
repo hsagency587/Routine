@@ -194,6 +194,28 @@
       "giorno": "2026-09-20",
       "gws": 2,
       "mod": "2026-09-18T08:45:23.741Z"
+    },
+    {
+      "id": "tmu6pvl7as9e2",
+      "creata": "2026-09-18T08:49:01.462Z",
+      "nome": "Client work",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-20",
+      "gws": 3,
+      "mod": "2026-09-18T08:49:01.462Z"
+    },
+    {
+      "id": "tmu6pwurbj8ke",
+      "creata": "2026-09-18T08:50:00.503Z",
+      "nome": "Registra video AlbergADV",
+      "desc": "",
+      "rank": "B",
+      "cliente": null,
+      "giorno": "2026-09-20",
+      "gws": 4,
+      "mod": "2026-09-18T08:50:00.503Z"
     }
   ],
   "clienti": [
