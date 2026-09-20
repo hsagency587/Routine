@@ -196,26 +196,15 @@
       "mod": "2026-09-18T08:45:23.741Z"
     },
     {
-      "id": "tmu6pvl7as9e2",
-      "creata": "2026-09-18T08:49:01.462Z",
-      "nome": "Client work",
+      "id": "tmu9kkemf2dmm",
+      "creata": "2026-09-20T08:43:40.168Z",
+      "nome": "Imposta campagne",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": "2026-09-20",
       "gws": 3,
-      "mod": "2026-09-18T08:49:01.462Z"
-    },
-    {
-      "id": "tmu6pwurbj8ke",
-      "creata": "2026-09-18T08:50:00.503Z",
-      "nome": "Registra video AlbergADV",
-      "desc": "",
-      "rank": "B",
-      "cliente": null,
-      "giorno": "2026-09-20",
-      "gws": 4,
-      "mod": "2026-09-18T08:50:00.503Z"
+      "mod": "2026-09-20T08:43:40.168Z"
     }
   ],
   "clienti": [
@@ -555,6 +544,8 @@
     "tmu11plig2xf0": "2026-09-16T04:46:12.237Z",
     "tmtrp1iuw5f9v": "2026-09-17T04:02:42.632Z",
     "tmtwrjg8ycr4z": "2026-09-17T04:02:42.637Z",
-    "tmu327y73mjla": "2026-09-18T08:41:17.027Z"
+    "tmu327y73mjla": "2026-09-18T08:41:17.027Z",
+    "tmu6pvl7as9e2": "2026-09-20T08:43:26.400Z",
+    "tmu6pwurbj8ke": "2026-09-20T08:43:30.662Z"
   }
 }
