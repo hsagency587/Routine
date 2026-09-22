@@ -78,24 +78,13 @@
     {
       "id": "tmu2esuoraqma",
       "creata": "2026-09-15T08:27:53.307Z",
-      "nome": "Biglietti da visita ORDINE",
+      "nome": "Biglietti da visita + stand ORDINE",
       "desc": "Lovo+Di Nucci",
       "rank": "A",
       "cliente": "di-nucci",
       "giorno": null,
       "gws": null,
-      "mod": "2026-09-22T06:35:44.833Z"
-    },
-    {
-      "id": "tmu2etaxntjal",
-      "creata": "2026-09-15T08:28:14.363Z",
-      "nome": "Stand recensioni",
-      "desc": "",
-      "rank": "B",
-      "cliente": "di-nucci",
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-15T08:28:14.363Z"
+      "mod": "2026-09-22T06:44:05.041Z"
     },
     {
       "id": "tmu4fq7fs4foj",
@@ -519,6 +508,7 @@
     "tmtv6v0vny2gs": "2026-09-22T06:35:02.110Z",
     "tmu4fxw2i20xw": "2026-09-22T06:36:10.807Z",
     "tmtv70k47d2xo": "2026-09-22T06:37:05.476Z",
-    "tmtv705o06gz2": "2026-09-22T06:37:09.947Z"
+    "tmtv705o06gz2": "2026-09-22T06:37:09.947Z",
+    "tmu2etaxntjal": "2026-09-22T06:44:10.926Z"
   }
 }
