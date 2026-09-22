@@ -14,7 +14,15 @@ const LEGACY_KEY  = 'hs-personal-routine-v1';
    manda su GitHub in un commit solo, sul branch "task", via API con il token
    incollato in Impostazioni. Leggere funziona anche senza token: il repo e'
    pubblico. */
-const TASKS_KEY    = 'gwork-tasks-v1';       /* { tasks, sha, dirty, known } */
+/* La copia del telefono sta sotto una chiave che le app di prima non
+   conoscono. Il 22 settembre 2026 si e' scoperto da dove tornava sempre la
+   stessa versione vecchia: due schede di Chrome con l'app aperta da giorni,
+   congelate con il codice e le task del 10 settembre, che al risveglio
+   riscrivevano la loro copia nella memoria condivisa con l'app installata.
+   Con una chiave nuova una finestra del genere scrive nel vuoto. */
+const TASKS_KEY    = 'gwork-tasks-v2';       /* { tasks, clienti, workouts, cancellate, gen, sha, dirty, known } */
+const TASKS_KEY_V1 = 'gwork-tasks-v1';       /* la chiave di prima: si legge una volta, per migrare, poi si toglie */
+const DIARIO_SYNC_KEY = 'gwork-sync-diario-v1';
 const TOKEN_KEY    = 'gwork-token-v1';
 const ARCHIVIO_KEY = 'gwork-taskfatte-v1';   /* task fatte uscite dalla finestra */
 const MANCATE_KEY  = 'gwork-taskmancate-v1'; /* task lasciate indietro, giorno per giorno */
@@ -174,6 +182,24 @@ function writeStore(key, val) {
   } catch (e) {
     /* quota piena o modalita' privata: le spunte restano solo in memoria */
   }
+}
+
+/* Il diario della sincronizzazione: le ultime cose successe alla copia del
+   telefono — cosa e' entrato, da dove, cosa e' andato online. Si legge in
+   Impostazioni: se le task cambiano da sole, qui c'e' scritto chi e' stato. */
+const DIARIO_SYNC_MAX = 40;
+function leggiDiario() {
+  try {
+    const v = JSON.parse(localStorage.getItem(DIARIO_SYNC_KEY) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+function annota(msg) {
+  const d = new Date();
+  const p2 = n => String(n).padStart(2, '0');
+  const riga = p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ' ' + msg;
+  try { localStorage.setItem(DIARIO_SYNC_KEY, JSON.stringify([riga].concat(leggiDiario()).slice(0, DIARIO_SYNC_MAX))); }
+  catch (e) { /* niente diario: l'app va avanti lo stesso */ }
 }
 
 let checks  = readStore(CHECKS_KEY);
@@ -1121,12 +1147,30 @@ dlg.addEventListener('close', () => {
    le altre spunte, in locale: nel file una task e' solo cosa, quanto conta e
    quando. */
 let tstore = readStore(TASKS_KEY);
-if (!Array.isArray(tstore.tasks)) tstore = { tasks: [], sha: null, dirty: false, known: [] };
+let migrata = false;
+if (!Array.isArray(tstore.tasks)) {
+  /* prima apertura con la chiave nuova: la copia di prima si prende una
+     volta sola. Se e' stantia, la lettura dell'online che segue la sistema:
+     l'online ha una generazione piu' avanti, e vince. */
+  const v1 = readStore(TASKS_KEY_V1);
+  if (Array.isArray(v1.tasks)) { tstore = v1; migrata = true; }
+  else tstore = { tasks: [], sha: null, dirty: false, known: [] };
+}
 if (!Array.isArray(tstore.known)) tstore.known = [];
+/* La generazione: un contatore che sale di uno a ogni salvataggio andato a
+   buon fine e viaggia dentro il file. Una copia con una generazione piu'
+   bassa della nostra e' rimasta indietro, da qualunque parte arrivi — una
+   risposta vecchia, un'altra finestra, un file online riscritto da un'app
+   di prima — e non si prende. Non si torna mai indietro. */
+if (!Number.isInteger(tstore.gen) || tstore.gen < 0) tstore.gen = 0;
+try { localStorage.removeItem(TASKS_KEY_V1); } catch (e) { /* gia' assente */ }
 /* i clienti stanno nel file con le task: senza, si parte dal seme */
 if (!Array.isArray(tstore.clienti)) tstore.clienti = validClienti(CLIENTI_SEME);
 if (!Array.isArray(tstore.workouts)) tstore.workouts = [];
 if (!tstore.cancellate || typeof tstore.cancellate !== 'object' || Array.isArray(tstore.cancellate)) tstore.cancellate = {};
+annota('avvio: gen ' + tstore.gen + ', ' + tstore.tasks.length + ' task' + (tstore.dirty ? ', modifiche in sospeso' : '')
+       + (migrata ? ', copia presa dalla chiave di prima' : ''));
+if (migrata) writeStore(TASKS_KEY, tstore);
 
 let archivio = readStore(ARCHIVIO_KEY);
 let mancate  = readStore(MANCATE_KEY);
@@ -1265,6 +1309,9 @@ function normFile(data) {
   return { tasks: tasks, clienti: clienti, workouts: workouts, cancellate: validCancellate(data && data.cancellate) };
 }
 const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts, cancellate: tstore.cancellate });
+/* La generazione di un file o di una copia; senza, e' zero: scritta da
+   un'app di prima. */
+const fileGen   = d => (d && Number.isInteger(d.gen) && d.gen > 0) ? d.gen : 0;
 const sameFile  = (a, b) => JSON.stringify(normFile(a)) === JSON.stringify(normFile(b));
 
 /* Un file letto da fuori prende il posto di quello locale. */
@@ -2355,6 +2402,9 @@ function openImpostazioni() {
   const s = $('tokenStato');
   s.className = 'nota';
   s.textContent = token ? 'Token presente.' : 'Nessun token: le task si leggono ma non si salvano.';
+  $('statoCopia').textContent = 'Copia del telefono: generazione ' + tstore.gen + ', ' + tstore.tasks.length + ' task'
+    + (tstore.sha ? ', online ' + tstore.sha.slice(0, 7) : '') + (tstore.dirty ? ', modifiche non salvate' : '') + '.';
+  $('diarioSync').textContent = leggiDiario().join('\n') || 'Ancora niente.';
   dlgImp.showModal();
 }
 
@@ -2490,6 +2540,7 @@ async function pullTasks(opts) {
   let data;
   try { data = JSON.parse(b64dec(j.content)); } catch (e) { ko('file online illeggibile'); return; }
   const remote = normFile(data);
+  const rg = fileGen(data);
   pullKo = false;
 
   if (!opts.forza) {
@@ -2498,12 +2549,22 @@ async function pullTasks(opts) {
        il telefono non ha piu' quello che sta online: si era svuotato */
     if (tstore.known.indexOf(j.sha) >= 0 && j.sha !== tstore.sha) return;
     if (j.sha === tstore.sha && sameFile(remote, localFile())) return;   /* niente di nuovo */
+    /* un file piu' indietro della nostra copia — una risposta vecchia, o
+       l'online riscritto da un'app di prima — non si prende. Se abbiamo il
+       token, la nostra copia va su a rimettere le cose a posto. */
+    if (rg < tstore.gen) {
+      annota('online indietro: gen ' + rg + ' contro ' + tstore.gen + ', sha ' + j.sha.slice(0, 7) + ' — ignorato');
+      if (token && !salvando) { tstore.dirty = true; saveLocal(); paintSalva(); pushTasks(); }
+      else fine('online indietro: Salva per rimetterlo a posto');
+      return;
+    }
   }
 
   if (tstore.dirty && !opts.forza) {
     /* e' la nostra stessa versione, salvata dal salvagente senza risposta? */
     if (sameFile(remote, localFile())) {
-      rememberSha(j.sha); tstore.dirty = false; saveLocal(); paintSalva();
+      rememberSha(j.sha); tstore.gen = rg; tstore.dirty = false; saveLocal(); paintSalva();
+      annota('online uguale alla copia: gen ' + rg + ', sha ' + j.sha.slice(0, 7));
       fine('allineato');
       return;
     }
@@ -2512,18 +2573,23 @@ async function pullTasks(opts) {
        telefono non aveva niente di suo: e' gia' allineato */
     applicaFile(mergeFile(localFile(), remote));
     rememberSha(j.sha);
+    tstore.gen = rg;
     tstore.dirty = !sameFile(localFile(), remote);
     saveLocal();
     tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
+    annota('unito con l\'online: gen ' + rg + ', sha ' + j.sha.slice(0, 7) + ', ' + tstore.tasks.length + ' task'
+           + (tstore.dirty ? ', da salvare' : ''));
     fine(tstore.dirty ? 'unito con l\'online: Salva per allineare' : 'allineato');
     return;
   }
 
   applicaFile(remote);
   rememberSha(j.sha);
+  tstore.gen = rg;
   tstore.dirty = false;
   saveLocal();
   tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva();
+  annota((opts.forza ? 'ripreso dall\'online: ' : 'preso l\'online: ') + 'gen ' + rg + ', sha ' + j.sha.slice(0, 7) + ', ' + tstore.tasks.length + ' task');
   fine((opts.forza ? 'ripreso dall\'online alle ' : 'allineato alle ') + fmtTime.format(new Date()));
 }
 
@@ -2556,16 +2622,27 @@ async function pushTasks(opts) {
       } catch (e) { /* illeggibile: si scrive sopra */ }
       if (data) {
         const remote = normFile(data);
-        if (!sameFile(remote, localFile())) {
-          applicaFile(mergeFile(localFile(), remote));
-          saveLocal();
-          tidyTasks(); render(); paintDrawer(); paintWorkout();
-        }
-        if (sameFile(remote, localFile())) {
-          /* l'unione e' proprio l'online: non c'e' niente da scrivere */
-          salvando = false; tstore.dirty = false; saveLocal(); paintSalva();
-          paintSync('allineato alle ' + fmtTime.format(new Date()));
-          return;
+        const rg = fileGen(data);
+        if (rg < tstore.gen) {
+          /* l'online e' piu' indietro della nostra copia — riscritto da
+             un'app di prima, o una risposta vecchia: non ci si unisce, ci
+             si scrive sopra. Quello che sta online conta solo se e' andato
+             avanti. */
+          annota('online indietro al Salva: gen ' + rg + ' contro ' + tstore.gen + ' — ci scrivo sopra');
+        } else {
+          tstore.gen = rg;
+          if (!sameFile(remote, localFile())) {
+            applicaFile(mergeFile(localFile(), remote));
+            saveLocal();
+            tidyTasks(); render(); paintDrawer(); paintWorkout();
+            annota('unito prima del Salva: gen ' + rg + ', ' + tstore.tasks.length + ' task');
+          }
+          if (sameFile(remote, localFile())) {
+            /* l'unione e' proprio l'online: non c'e' niente da scrivere */
+            salvando = false; tstore.dirty = false; saveLocal(); paintSalva();
+            paintSync('allineato alle ' + fmtTime.format(new Date()));
+            return;
+          }
         }
       }
     } else if (cur.status !== 404) {
@@ -2581,19 +2658,22 @@ async function pushTasks(opts) {
   /* la fotografia di cio' che parte: se nel frattempo si tocca qualcosa,
      dirty deve restare acceso anche a salvataggio riuscito */
   const sent = JSON.stringify(localFile());
+  const genOut = tstore.gen + 1;
   const n = tstore.tasks.filter(x => !x.giorno).length;
   const payload = {
-    message: 'task: ' + n + ' in serbatoio, ' + (tstore.tasks.length - n) + ' schedulate',
-    content: b64enc(JSON.stringify(localFile(), null, 2) + '\n'),
+    message: 'task: ' + n + ' in serbatoio, ' + (tstore.tasks.length - n) + ' schedulate (gen ' + genOut + ')',
+    content: b64enc(JSON.stringify(Object.assign({ gen: genOut }, localFile()), null, 2) + '\n'),
     branch:  TASK_BRANCH
   };
   if (tstore.sha) payload.sha = tstore.sha;
   const body = JSON.stringify(payload);
 
-  const salvato = () => {
+  const salvato = g => {
+    tstore.gen = g;
     if (JSON.stringify(localFile()) === sent) tstore.dirty = false;
     saveLocal(); paintSalva();
     paintSync('salvato alle ' + fmtTime.format(new Date()));
+    annota('salvato: gen ' + g + ', ' + tstore.tasks.length + ' task');
   };
 
   let r;
@@ -2631,10 +2711,17 @@ async function pushTasks(opts) {
         try { data = JSON.parse(b64dec(j.content)); } catch (e) { /* illeggibile: si scrive sopra */ }
         if (data) {
           const remote = normFile(data);
-          if (sameFile(remote, localFile())) { salvato(); return; }
-          applicaFile(mergeFile(localFile(), remote));
-          saveLocal();
-          tidyTasks(); render(); paintDrawer(); paintWorkout();
+          const rg = fileGen(data);
+          if (rg < tstore.gen) {
+            annota('online indietro al conflitto: gen ' + rg + ' contro ' + tstore.gen + ' — ci scrivo sopra');
+          } else {
+            if (sameFile(remote, localFile())) { salvato(rg); return; }
+            tstore.gen = rg;
+            applicaFile(mergeFile(localFile(), remote));
+            saveLocal();
+            tidyTasks(); render(); paintDrawer(); paintWorkout();
+            annota('unito al conflitto: gen ' + rg + ', ' + tstore.tasks.length + ' task');
+          }
         }
         return pushTasks(Object.assign({}, opts, { retry: true }));
       }
@@ -2659,7 +2746,7 @@ async function pushTasks(opts) {
   let j = null;
   try { j = await r.json(); } catch (e) { /* salvato comunque */ }
   if (j && j.content && j.content.sha) rememberSha(j.content.sha);
-  salvato();
+  salvato(genOut);
 }
 
 /* Il salvagente: si chiama chiudendo l'app. keepalive chiede al browser di
@@ -2729,6 +2816,16 @@ window.addEventListener('storage', ev => {
   if (ev.key !== TASKS_KEY || !ev.newValue) return;
   const altra = readStore(TASKS_KEY);
   if (!Array.isArray(altra.tasks)) return;
+  const ag = fileGen(altra);
+  if (ag < tstore.gen) {
+    /* una finestra rimasta indietro ha appena scritto la sua copia sopra la
+       nostra: si riscrive la nostra, cosi' e' lei a prendersi quella giusta
+       e una riapertura non parte da una copia stantia */
+    annota('altra finestra indietro: gen ' + ag + ' contro ' + tstore.gen + ' — ignorata, riscrivo la mia');
+    saveLocal();
+    return;
+  }
+  tstore.gen = ag;
   const sua = normFile(altra);
   if (tstore.dirty && !sameFile(sua, localFile())) {
     applicaFile(mergeFile(localFile(), sua));
@@ -2738,6 +2835,7 @@ window.addEventListener('storage', ev => {
   }
   if (typeof altra.sha === 'string') tstore.sha = altra.sha;
   if (Array.isArray(altra.known)) tstore.known = altra.known;
+  annota('presa dall\'altra finestra: gen ' + ag + ', ' + tstore.tasks.length + ' task');
   tidyTasks(); render(); paintDrawer(); paintWorkout(); paintSalva(); paintSync();
 });
 
