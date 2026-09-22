@@ -162,6 +162,28 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-22T06:37:24.171Z"
+    },
+    {
+      "id": "tmucbetzflgqn",
+      "creata": "2026-09-22T06:50:42.123Z",
+      "nome": "Finire trasferimento sito",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-22",
+      "gws": 0,
+      "mod": "2026-09-22T06:50:42.123Z"
+    },
+    {
+      "id": "tmucbg2q2xoza",
+      "creata": "2026-09-22T06:51:40.106Z",
+      "nome": "Audio Reminder",
+      "desc": "Si parte a ottobre e gli dico di saldare entro la fine di settembre. Io mi preparo e mi organizzo per cominciare a lavorare. ",
+      "rank": "A",
+      "cliente": "reabilital",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-22T06:51:40.106Z"
     }
   ],
   "clienti": [
@@ -207,6 +229,11 @@
       "nome": "Alber-GO",
       "agenzia": true,
       "mod": "2026-09-14T09:32:08.280Z"
+    },
+    {
+      "id": "reabilital",
+      "nome": "ReabilitAL",
+      "mod": "2026-09-22T06:50:20.805Z"
     }
   ],
   "workouts": [
