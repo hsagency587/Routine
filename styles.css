@@ -415,6 +415,7 @@ body.menu-open{overflow:hidden}
 .nota{margin:var(--s2) 0 0;font-size:12px;line-height:1.4;color:var(--muted)}
 .nota.ok{color:var(--accent)}
 .nota.err{color:var(--danger)}
+.nota.diario{white-space:pre-wrap;max-height:180px;overflow:auto;font:inherit;font-size:11px;line-height:1.5;padding:var(--s2);border:1px solid var(--line);border-radius:8px}
 
 .pesca-list{max-height:50vh;overflow-y:auto;margin:0 calc(-1 * var(--s4))}
 .pesca-list .trow{padding-right:var(--s4)}
