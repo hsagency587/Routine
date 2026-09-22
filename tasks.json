@@ -22,16 +22,6 @@
       "mod": "2026-09-14T09:29:25.378Z"
     },
     {
-      "id": "tmtv6v0vny2gs",
-      "nome": "Audit Bergamaschi",
-      "desc": "",
-      "rank": "B",
-      "cliente": "bergamaschi",
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T07:11:14.483Z"
-    },
-    {
       "id": "tmtv6x9ru4xxg",
       "nome": "Planning bergamaschi",
       "desc": "",
@@ -64,28 +54,6 @@
       "mod": "2026-09-14T09:10:59.705Z"
     },
     {
-      "id": "tmtv705o06gz2",
-      "nome": "Audit SEO anna",
-      "desc": "",
-      "rank": "B",
-      "cliente": "ristorante-da-anna",
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T07:15:13.968Z",
-      "mod": "2026-09-14T09:10:47.622Z"
-    },
-    {
-      "id": "tmtv70k47d2xo",
-      "nome": "Omnia Placeholder +logo",
-      "desc": "",
-      "rank": "B",
-      "cliente": "omnia",
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-10T07:15:32.695Z",
-      "mod": "2026-09-17T06:55:52.609Z"
-    },
-    {
       "id": "tmtv70wfjyji4",
       "nome": "Omnia citazioni audit",
       "desc": "",
@@ -110,13 +78,13 @@
     {
       "id": "tmu2esuoraqma",
       "creata": "2026-09-15T08:27:53.307Z",
-      "nome": "Biglietti da visita",
-      "desc": "",
-      "rank": "B",
+      "nome": "Biglietti da visita ORDINE",
+      "desc": "Lovo+Di Nucci",
+      "rank": "A",
       "cliente": "di-nucci",
       "giorno": null,
       "gws": null,
-      "mod": "2026-09-15T08:27:53.307Z"
+      "mod": "2026-09-22T06:35:44.833Z"
     },
     {
       "id": "tmu2etaxntjal",
@@ -139,17 +107,6 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-16T18:29:21.832Z"
-    },
-    {
-      "id": "tmu4fxw2i20xw",
-      "creata": "2026-09-16T18:35:20.346Z",
-      "nome": "Stacca Abbonamento",
-      "desc": "",
-      "rank": "B",
-      "cliente": "di-nucci",
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-16T18:35:20.346Z"
     },
     {
       "id": "tmu56dl22kruj",
@@ -196,17 +153,6 @@
       "mod": "2026-09-21T07:07:19.407Z"
     },
     {
-      "id": "tmu9kkemf2dmm",
-      "creata": "2026-09-20T08:43:40.168Z",
-      "nome": "Imposta campagne",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-21T07:07:19.407Z"
-    },
-    {
       "id": "tmubkft8wqiz1",
       "creata": "2026-09-21T18:15:38.192Z",
       "nome": "IDEA META ADS RISTORANTE",
@@ -216,6 +162,17 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-21T18:15:38.192Z"
+    },
+    {
+      "id": "tmucaxqa3ifcf",
+      "creata": "2026-09-22T06:37:24.171Z",
+      "nome": "Fix incongruenze sito Anna",
+      "desc": "",
+      "rank": "B",
+      "cliente": "ristorante-da-anna",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-22T06:37:24.171Z"
     }
   ],
   "clienti": [
@@ -557,6 +514,11 @@
     "tmtwrjg8ycr4z": "2026-09-17T04:02:42.637Z",
     "tmu327y73mjla": "2026-09-18T08:41:17.027Z",
     "tmu6pvl7as9e2": "2026-09-20T08:43:26.400Z",
-    "tmu6pwurbj8ke": "2026-09-20T08:43:30.662Z"
+    "tmu6pwurbj8ke": "2026-09-20T08:43:30.662Z",
+    "tmu9kkemf2dmm": "2026-09-22T06:34:41.736Z",
+    "tmtv6v0vny2gs": "2026-09-22T06:35:02.110Z",
+    "tmu4fxw2i20xw": "2026-09-22T06:36:10.807Z",
+    "tmtv70k47d2xo": "2026-09-22T06:37:05.476Z",
+    "tmtv705o06gz2": "2026-09-22T06:37:09.947Z"
   }
 }
