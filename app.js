@@ -76,8 +76,11 @@ const FASCE = [[0, 540], [540, 630], [630, 855], [855, 960], [960, 1140], [1140,
 /* Le finestre protette. Nessun rapporto con le fasce, nessun nome visibile. */
 const PROTETTE = [[0, 450], [750, 855], [1080, 1140], [1260, 1440]];
 
-/* La routine fissa. Il totale del giorno si calcola da qui, non e' una costante. */
-const ROUTINE = [
+/* Il seme della routine: le tappe con cui l'app e' nata. Quella che si
+   mostra e si conta e' ROUTINE, qui sotto, che viene dal file con le task e
+   si cambia da Impostazioni > Modifica le tappe. Il seme vale solo per un
+   file che non ne ha ancora una, e per rimettere a posto quello che manca. */
+const ROUTINE_SEME = [
   { id: 'sveglia', t: 'SVEGLIA 6:45', sub: [
     { id: 'sveglia-massaggio',    t: 'MASSAGGIO FACCIA AL SOLE' },
     { id: 'sveglia-morning-call', t: 'ASCOLTO MORNING CALL' },
@@ -130,6 +133,21 @@ const ROUTINE = [
 /* La tappa che chiude la giornata: spuntarla chiede il voto e il commento.
    L'id resta quello vecchio, cosi' le spunte gia' date non si perdono. */
 const CLOSE_ID = 'non-masturbarti';
+
+/* La routine di ogni giorno: nomi, ordine, sottotappe e alternative. Il
+   totale del giorno si calcola da qui, non e' una costante. */
+let ROUTINE = ROUTINE_SEME;
+
+/* Una copia di una tappa, staccata dall'originale: l'editor lavora su copie
+   e il seme non si tocca mai. Sta qui in alto perche' serve gia' all'avvio. */
+const copiaVoce = v => ({ id: v.id, t: v.t });
+function copiaTappa(t) {
+  const out = { id: t.id, t: t.t };
+  if (t.gws != null) out.gws = t.gws;
+  if (t.sub)    out.sub    = t.sub.map(copiaVoce);
+  if (t.choice) out.choice = t.choice.map(copiaVoce);
+  return out;
+}
 
 /* ---------------------------------------------------------------- date --- */
 
@@ -1168,6 +1186,9 @@ try { localStorage.removeItem(TASKS_KEY_V1); } catch (e) { /* gia' assente */ }
 if (!Array.isArray(tstore.clienti)) tstore.clienti = validClienti(CLIENTI_SEME);
 if (!Array.isArray(tstore.workouts)) tstore.workouts = [];
 if (!tstore.cancellate || typeof tstore.cancellate !== 'object' || Array.isArray(tstore.cancellate)) tstore.cancellate = {};
+/* la routine sta nel file con le task: senza, vale il seme */
+tstore.routine = validRoutine(tstore.routine);
+ROUTINE = tstore.routine.tappe;
 annota('avvio: gen ' + tstore.gen + ', ' + tstore.tasks.length + ' task' + (tstore.dirty ? ', modifiche in sospeso' : '')
        + (migrata ? ', copia presa dalla chiave di prima' : ''));
 if (migrata) writeStore(TASKS_KEY, tstore);
@@ -1290,6 +1311,57 @@ function validWorkout(w) {
 /* Il file com'e' scritto: task, clienti e workout. Un file arrivato da fuori
    si normalizza qui, e quello locale pure, cosi' il confronto e' alla pari.
    Un file senza clienti e' di prima che ci fossero: vale il seme. */
+/* Una voce della routine — tappa, sottotappa o alternativa — arrivata da
+   fuori: id e nome. */
+function validVoce(v) {
+  if (!v || typeof v !== 'object' || typeof v.id !== 'string' || !v.id
+      || typeof v.t !== 'string' || !v.t.trim()) return null;
+  return { id: v.id, t: v.t.trim() };
+}
+
+/* La routine arrivata da fuori: le tappe in ordine, ognuna con id, nome,
+   sottotappe e alternative. Gli id restano quelli: e' a loro che sono
+   legate le spunte gia' date. Le sei sessioni G Work e la tappa che chiude
+   la giornata devono esserci, una volta sola: se mancano tornano dal seme,
+   se sono doppie resta la prima. Cosi' un file rotto o vecchio non puo'
+   rompere l'app, e il giorno si chiude sempre. */
+function validRoutine(r) {
+  /* senza routine, o con una mai toccata da nessuno (niente `mod`), vale il
+     seme per intero: e' il file di prima che ci fosse l'editor */
+  if (!(r && typeof r === 'object' && Array.isArray(r.tappe) && typeof r.mod === 'string' && r.mod)) {
+    return { tappe: ROUTINE_SEME.map(copiaTappa), mod: '' };
+  }
+  const tappe = [], visti = {}, gwsVisti = {};
+  const lista = r.tappe;
+  const figlie = l => (Array.isArray(l) ? l : []).map(validVoce).filter(Boolean)
+    .filter(v => { if (visti[v.id]) return false; visti[v.id] = 1; return true; });
+  for (const x of lista) {
+    const v = validVoce(x);
+    if (!v || visti[v.id]) continue;
+    visti[v.id] = 1;
+    const t = { id: v.id, t: v.t };
+    if (Number.isInteger(x.gws) && x.gws >= 0 && x.gws <= 5 && !gwsVisti[x.gws]) { t.gws = x.gws; gwsVisti[x.gws] = 1; }
+    const sub = figlie(x.sub), choice = figlie(x.choice);
+    if (sub.length)    t.sub    = sub;
+    if (choice.length) t.choice = choice;
+    tappe.push(t);
+  }
+  for (const s of ROUTINE_SEME) {
+    const manca = s.gws != null ? !gwsVisti[s.gws] : s.id === CLOSE_ID && !visti[CLOSE_ID];
+    if (!manca) continue;
+    const t = copiaTappa(s);
+    delete t.sub; delete t.choice;
+    if (visti[t.id]) t.id = s.id + '-' + Date.now().toString(36);   /* l'id e' gia' di un'altra voce */
+    /* una sessione torna prima di quella che la segue; il resto in fondo */
+    let pos = tappe.length;
+    if (s.gws != null) { const i = tappe.findIndex(x => x.gws != null && x.gws > s.gws); if (i >= 0) pos = i; }
+    tappe.splice(pos, 0, t);
+    visti[t.id] = 1;
+    if (s.gws != null) gwsVisti[s.gws] = 1;
+  }
+  return { tappe: tappe, mod: r.mod };
+}
+
 /* Le cancellazioni: id -> quando. Servono a unire due copie senza far
    risorgere quello che una delle due ha tolto. Dopo sessanta giorni non
    servono piu' e cadono. */
@@ -1306,9 +1378,11 @@ function normFile(data) {
   const clienti = data && Array.isArray(data.clienti) ? validClienti(data.clienti) : validClienti(CLIENTI_SEME);
   const tasks = data && Array.isArray(data.tasks) ? data.tasks.map(x => validTask(x, clienti)).filter(Boolean) : [];
   const workouts = data && Array.isArray(data.workouts) ? data.workouts.map(validWorkout).filter(Boolean) : [];
-  return { tasks: tasks, clienti: clienti, workouts: workouts, cancellate: validCancellate(data && data.cancellate) };
+  return { tasks: tasks, clienti: clienti, workouts: workouts, cancellate: validCancellate(data && data.cancellate),
+           routine: validRoutine(data && data.routine) };
 }
-const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts, cancellate: tstore.cancellate });
+const localFile = () => ({ tasks: tstore.tasks, clienti: tstore.clienti, workouts: tstore.workouts, cancellate: tstore.cancellate,
+                           routine: tstore.routine });
 /* La generazione di un file o di una copia; senza, e' zero: scritta da
    un'app di prima. */
 const fileGen   = d => (d && Number.isInteger(d.gen) && d.gen > 0) ? d.gen : 0;
@@ -1320,6 +1394,8 @@ function applicaFile(f) {
   tstore.clienti    = f.clienti;
   tstore.workouts   = f.workouts;
   tstore.cancellate = f.cancellate;
+  tstore.routine    = f.routine;
+  ROUTINE = tstore.routine.tappe;
 }
 
 /* Due copie che non si conoscono — il telefono e l'online — si uniscono
@@ -1344,8 +1420,10 @@ function mergeFile(a, b) {
     for (const y of lb) if (!visti[y.id] && viva(y)) out.push(y);
     return out;
   };
+  /* la routine e' una sola: vince quella cambiata per ultima, a parita' la nostra */
+  const routine = (b.routine && b.routine.mod || '') > (a.routine && a.routine.mod || '') ? b.routine : a.routine;
   return { tasks: unisci(a.tasks, b.tasks), clienti: unisci(a.clienti, b.clienti),
-           workouts: unisci(a.workouts, b.workouts), cancellate: canc };
+           workouts: unisci(a.workouts, b.workouts), cancellate: canc, routine: routine };
 }
 
 function saveLocal() { writeStore(TASKS_KEY, tstore); }
@@ -2393,9 +2471,219 @@ $('eElimina').addEventListener('click', () => {
   fineEx();
 });
 
+/* ------------------------------------------------------------- tappe ---- */
+
+/* L'editor delle tappe: la routine di ogni giorno si cambia da qui. Lavora
+   su una copia e scrive con Conferma: da li' vale per tutti i giorni,
+   viaggia nel file con le task e va online con lo stesso Salva. Le sei
+   sessioni G Work e la tappa che chiude la giornata si rinominano e si
+   spostano ma non si tolgono: le sessioni sono le fasce orarie del
+   calendario, la chiusura e' quella che scrive il voto. */
+const dlgTappe = $('tappe');
+let ted = null;                   /* la copia delle tappe in lavorazione */
+const newRid = () => 'r' + newId().slice(1);
+const fissa   = t => t.gws != null || t.id === CLOSE_ID;
+
+function openTappe() {
+  ted = tstore.routine.tappe.map(copiaTappa);
+  paintTappe();
+  dlgTappe.showModal();
+  $('tappeTit').focus({ preventScroll: true });
+}
+
+function paintTappe() {
+  const ul = $('tappeLista');
+  ul.textContent = '';
+  ted.forEach((t, i) => {
+    const li = el('li', 'esrow');
+    const n = el('button', 'esnome', t.t);
+    n.type = 'button';
+    n.dataset.tappa = i;
+    const tipo = t.gws != null ? 'GWS ' + (t.gws + 1) : t.id === CLOSE_ID ? 'CHIUDE' : '';
+    if (tipo) n.appendChild(el('span', 'ttipo', tipo));
+    const nf = (t.sub ? t.sub.length : 0) + (t.choice ? t.choice.length : 0);
+    if (nf) n.appendChild(el('span', 'ttipo', nf + (nf === 1 ? ' VOCE' : ' VOCI')));
+    li.appendChild(n);
+    for (const d of [-1, 1]) {
+      const b = el('button', 'esmv', d < 0 ? '▲' : '▼');
+      b.type = 'button';
+      b.dataset.tappa = i;
+      b.dataset.d = d;
+      b.disabled = i + d < 0 || i + d >= ted.length;
+      b.setAttribute('aria-label', d < 0 ? 'Sposta su' : 'Sposta giu`');
+      li.appendChild(b);
+    }
+    ul.appendChild(li);
+  });
+}
+
+dlgTappe.addEventListener('click', ev => {
+  if (!ted) return;
+  const mv = ev.target.closest('button.esmv[data-tappa]');
+  if (mv) {
+    const i = +mv.dataset.tappa, j = i + (+mv.dataset.d);
+    if (j < 0 || j >= ted.length) return;
+    [ted[i], ted[j]] = [ted[j], ted[i]];
+    paintTappe();
+    return;
+  }
+  const n = ev.target.closest('button.esnome[data-tappa]');
+  if (n) openTappaEd(+n.dataset.tappa);
+});
+
+$('tappeAggiungi').addEventListener('click', () => openTappaEd(-1));
+$('tappeAnnulla').addEventListener('click', () => { ted = null; dlgTappe.close(); });
+dlgTappe.addEventListener('cancel', () => { ted = null; });
+
+/* Conferma: la copia passa dalla stessa validazione di un file arrivato da
+   fuori — cosi' quello che manca torna e i doppioni cadono — prende l'ora,
+   e da questo momento e' la routine di tutti i giorni. Salva la manda online. */
+$('tappeForm').addEventListener('submit', () => {
+  if (!ted) return;
+  const r = validRoutine({ tappe: ted, mod: new Date().toISOString() });
+  tstore.routine = r;
+  ROUTINE = r.tappe;
+  ted = null;
+  touch();
+  render();
+  annota('tappe cambiate: ' + r.tappe.length + ' tappe, da salvare');
+});
+
+/* L'editor della tappa: nome, sottotappe e alternative in righe che si
+   scrivono sul posto, con le frecce per l'ordine. Si apre sopra la lista e
+   scrive nella sua copia con Conferma. */
+const dlgTappa = $('tappaEd');
+let tpd = null;                   /* { i, t }: quale tappa (-1 = nuova) e la sua copia */
+
+function openTappaEd(i) {
+  if (!ted) return;
+  const t = i >= 0 ? ted[i] : null;
+  if (i >= 0 && !t) return;
+  tpd = { i: i, t: t ? copiaTappa(t) : { id: newRid(), t: '' } };
+  if (!tpd.t.sub)    tpd.t.sub    = [];
+  if (!tpd.t.choice) tpd.t.choice = [];
+  $('tappaEdTit').textContent = t ? 'Modifica tappa' : 'Nuova tappa';
+  $('tpNome').value = tpd.t.t;
+  const tipo = $('tpTipo');
+  tipo.textContent = tpd.t.gws != null
+    ? 'Sessione G Work ' + (tpd.t.gws + 1) + ': raccoglie gli eventi della sua fascia oraria e le task del giorno. Si rinomina e si sposta, non si toglie.'
+    : tpd.t.id === CLOSE_ID
+    ? 'Chiude la giornata: spuntarla chiede voto e commento. Si rinomina e si sposta, non si toglie.'
+    : '';
+  tipo.hidden = !fissa(tpd.t);
+  $('tpElimina').hidden = !t || fissa(tpd.t);
+  $('tpElimina').textContent = 'Elimina';
+  paintVoci();
+  dlgTappa.showModal();
+  $('tappaEdTit').focus({ preventScroll: true });
+}
+
+function vociRows(ul, lista, tipo) {
+  ul.textContent = '';
+  lista.forEach((v, i) => {
+    const li = el('li', 'esrow vrow');
+    const inp = el('input', 'campo vnome');
+    inp.type = 'text';
+    inp.maxLength = 60;
+    inp.autocomplete = 'off';
+    inp.placeholder = 'Nome';
+    inp.value = v.t;
+    inp.dataset.voce = i;
+    inp.dataset.lista = tipo;
+    li.appendChild(inp);
+    for (const d of [-1, 1]) {
+      const b = el('button', 'esmv', d < 0 ? '▲' : '▼');
+      b.type = 'button';
+      b.dataset.voce = i;
+      b.dataset.lista = tipo;
+      b.dataset.d = d;
+      b.disabled = i + d < 0 || i + d >= lista.length;
+      b.setAttribute('aria-label', d < 0 ? 'Sposta su' : 'Sposta giu`');
+      li.appendChild(b);
+    }
+    const x = el('button', 'esmv vdel', '×');
+    x.type = 'button';
+    x.dataset.voce = i;
+    x.dataset.lista = tipo;
+    x.setAttribute('aria-label', 'Togli');
+    li.appendChild(x);
+    ul.appendChild(li);
+  });
+  if (!lista.length) ul.appendChild(el('li', 'vuoto', tipo === 'sub' ? 'Nessuna sottotappa' : 'Nessuna alternativa'));
+}
+
+function paintVoci() {
+  vociRows($('tpSub'), tpd.t.sub, 'sub');
+  vociRows($('tpChoice'), tpd.t.choice, 'choice');
+}
+
+/* quello che c'e' scritto nelle righe torna nella copia, prima di ridisegnarle */
+function leggiVoci() {
+  dlgTappa.querySelectorAll('input[data-voce]').forEach(inp => {
+    const v = tpd.t[inp.dataset.lista][+inp.dataset.voce];
+    if (v) v.t = inp.value;
+  });
+}
+
+dlgTappa.addEventListener('click', ev => {
+  if (!tpd) return;
+  const add = ev.target.closest('button[data-aggiungi]');
+  const b = ev.target.closest('button[data-voce]');
+  if (!add && !b) return;
+  leggiVoci();
+  if (add) {
+    const l = tpd.t[add.dataset.aggiungi];
+    l.push({ id: newRid(), t: '' });
+    paintVoci();
+    const inp = dlgTappa.querySelector('input[data-lista="' + add.dataset.aggiungi + '"][data-voce="' + (l.length - 1) + '"]');
+    if (inp) inp.focus();
+    return;
+  }
+  const l = tpd.t[b.dataset.lista], i = +b.dataset.voce;
+  if (b.classList.contains('vdel')) l.splice(i, 1);
+  else {
+    const j = i + (+b.dataset.d);
+    if (j < 0 || j >= l.length) return;
+    [l[i], l[j]] = [l[j], l[i]];
+  }
+  paintVoci();
+});
+
+$('tappaEdForm').addEventListener('submit', ev => {
+  const nome = $('tpNome').value.trim();
+  if (!nome) { ev.preventDefault(); $('tpNome').focus(); return; }
+  if (!tpd) return;
+  leggiVoci();
+  const t = tpd.t;
+  t.t = nome;
+  /* le righe vuote cadono */
+  const pulite = l => l.map(v => ({ id: v.id, t: v.t.trim() })).filter(v => v.t);
+  const sub = pulite(t.sub), choice = pulite(t.choice);
+  delete t.sub; delete t.choice;
+  if (sub.length)    t.sub    = sub;
+  if (choice.length) t.choice = choice;
+  if (tpd.i >= 0) ted[tpd.i] = t; else ted.push(t);
+  tpd = null;
+  paintTappe();
+});
+
+$('tpAnnulla').addEventListener('click', () => { tpd = null; dlgTappa.close(); });
+dlgTappa.addEventListener('cancel', () => { tpd = null; });
+
+/* due tocchi per eliminare: il primo chiede, il secondo fa */
+$('tpElimina').addEventListener('click', () => {
+  const b = $('tpElimina');
+  if (b.textContent !== 'Sicuro?') { b.textContent = 'Sicuro?'; return; }
+  if (tpd && tpd.i >= 0 && !fissa(tpd.t)) ted.splice(tpd.i, 1);
+  tpd = null;
+  dlgTappa.close();
+  paintTappe();
+});
+
 /* ------------------------------------------------------ impostazioni ---- */
 
 const dlgImp = $('impostazioni');
+$('tappeApri').addEventListener('click', () => { dlgImp.close(); openTappe(); });
 
 function openImpostazioni() {
   $('tokenInput').value = token;

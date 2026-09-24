@@ -275,6 +275,11 @@
       <button type="button" class="btn" id="riprendiOnline">Riprendi dall'online</button>
     </div>
 
+    <p class="nota">Le tappe di ogni giorno: nomi, ordine, sottotappe e alternative. Cambiarle vale da subito per tutti i giorni; viaggiano nel file con le task e vanno online con Salva.</p>
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="tappeApri">Modifica le tappe</button>
+    </div>
+
     <p class="nota" id="statoCopia"></p>
     <p class="nota">Il diario della sincronizzazione: cosa è entrato nel telefono, da dove, e cosa è andato online.</p>
     <pre class="nota diario" id="diarioSync"></pre>
@@ -282,6 +287,45 @@
     <div class="chiusura-btn">
       <button type="button" class="btn" id="tokenAnnulla">Annulla</button>
       <button type="submit" class="btn btn-ok" value="ok">Salva token</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- L'editor delle tappe: la routine di ogni giorno, in ordine. -->
+<dialog class="chiusura" id="tappe" aria-labelledby="tappeTit">
+  <form method="dialog" class="chiusura-box" id="tappeForm">
+    <h2 class="chiusura-tit" id="tappeTit" tabindex="-1" autofocus>Tappe</h2>
+    <p class="nota">Tocca una tappa per cambiarla, le frecce la spostano. Le sessioni G Work e la tappa che chiude la giornata si rinominano e si spostano, non si tolgono.</p>
+    <ul class="eslist tlist" id="tappeLista"></ul>
+    <button type="button" class="btn btn-largo" id="tappeAggiungi">Aggiungi tappa</button>
+    <div class="chiusura-btn">
+      <button type="button" class="btn" id="tappeAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- L'editor della tappa: nome, sottotappe e alternative. Si apre sopra la lista. -->
+<dialog class="chiusura" id="tappaEd" aria-labelledby="tappaEdTit">
+  <form method="dialog" class="chiusura-box" id="tappaEdForm">
+    <h2 class="chiusura-tit" id="tappaEdTit" tabindex="-1" autofocus>Tappa</h2>
+
+    <label class="commento-lab" for="tpNome">Nome</label>
+    <input class="campo" id="tpNome" type="text" required maxlength="60" autocomplete="off">
+    <p class="nota" id="tpTipo" hidden></p>
+
+    <p class="commento-lab">Sottotappe</p>
+    <ul class="eslist" id="tpSub"></ul>
+    <button type="button" class="btn btn-largo" data-aggiungi="sub">Aggiungi sottotappa</button>
+
+    <p class="commento-lab">Alternative: se ne spunta una sola</p>
+    <ul class="eslist" id="tpChoice"></ul>
+    <button type="button" class="btn btn-largo" data-aggiungi="choice">Aggiungi alternativa</button>
+
+    <div class="chiusura-btn">
+      <button type="button" class="btn btn-del" id="tpElimina">Elimina</button>
+      <button type="button" class="btn" id="tpAnnulla">Annulla</button>
+      <button type="submit" class="btn btn-ok" value="ok">Conferma</button>
     </div>
   </form>
 </dialog>
