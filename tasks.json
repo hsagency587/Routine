@@ -1,5 +1,5 @@
 {
-  "gen": 1,
+  "gen": 2,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -101,13 +101,13 @@
     {
       "id": "tmu56dl22kruj",
       "nome": "Avv",
-      "desc": "Dobbiamo aprire un attività: local biz, hotel, app.\nAPP: serve un srl per la vendita di quote\nTrattamento dati?",
-      "rank": "B",
+      "desc": "Invia dati richiesti ",
+      "rank": "A",
       "cliente": null,
       "giorno": null,
       "gws": null,
       "creata": "2026-09-17T06:55:22.587Z",
-      "mod": "2026-09-18T08:41:17.027Z"
+      "mod": "2026-09-24T10:40:16.568Z"
     },
     {
       "id": "tmu6pp0goy4mi",
@@ -166,14 +166,14 @@
     },
     {
       "id": "tmucbg2q2xoza",
-      "nome": "Audio Reminder",
+      "nome": "Comunicazione accessi mali e nome casella",
       "desc": "Si parte a ottobre e gli dico di saldare entro la fine di settembre. Io mi preparo e mi organizzo per cominciare a lavorare. ",
       "rank": "A",
       "cliente": "reabilital",
       "giorno": null,
       "gws": null,
       "creata": "2026-09-22T06:51:40.106Z",
-      "mod": "2026-09-22T06:51:40.106Z"
+      "mod": "2026-09-24T10:41:34.060Z"
     },
     {
       "id": "tmucq0vol11a8",
@@ -196,6 +196,17 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-24T09:13:13.287Z"
+    },
+    {
+      "id": "tmufei54gifmn",
+      "creata": "2026-09-24T10:40:33.904Z",
+      "nome": "Aggiunte richieste",
+      "desc": "",
+      "rank": "B",
+      "cliente": "bergamaschi",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-24T10:40:33.905Z"
     }
   ],
   "clienti": [
