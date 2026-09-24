@@ -536,6 +536,12 @@ body.menu-open{overflow:hidden}
 .esmv:active{background:var(--surface)}
 .esmv:disabled{opacity:.25}
 .eslist .vuoto{padding:var(--s3)}
+/* l'editor delle tappe: il tipo accanto al nome, le righe con il campo dentro */
+.tlist{max-height:50vh;overflow-y:auto}
+.ttipo{margin-left:var(--s2);font-size:11px;letter-spacing:.06em;color:var(--muted)}
+.vrow{padding:4px 0 4px var(--s2)}
+.vnome{flex:1;min-width:0;min-height:36px}
+.vdel{color:var(--danger);font-size:22px}
 
 /* ---------- piede ---------- */
 
