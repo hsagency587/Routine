@@ -1,5 +1,5 @@
 {
-  "gen": 2,
+  "gen": 3,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -207,6 +207,17 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-24T10:40:33.905Z"
+    },
+    {
+      "id": "tmugl03zaym5v",
+      "creata": "2026-09-25T06:30:16.105Z",
+      "nome": "Link 350 euri",
+      "desc": "",
+      "rank": "A",
+      "cliente": "manuela-lovo",
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-25T06:30:16.105Z"
     }
   ],
   "clienti": [
@@ -561,5 +572,202 @@
     "tmtv705o06gz2": "2026-09-22T06:37:09.947Z",
     "tmu2etaxntjal": "2026-09-22T06:44:10.926Z",
     "tmucbetzflgqn": "2026-09-24T09:12:36.635Z"
+  },
+  "routine": {
+    "tappe": [
+      {
+        "id": "sveglia",
+        "t": "SVEGLIA 6:45",
+        "sub": [
+          {
+            "id": "sveglia-massaggio",
+            "t": "MASSAGGIO FACCIA AL SOLE"
+          },
+          {
+            "id": "sveglia-morning-call",
+            "t": "ASCOLTO MORNING CALL"
+          },
+          {
+            "id": "sveglia-acqua",
+            "t": "1 BICCHIERE DI ACQUA"
+          },
+          {
+            "id": "sveglia-main-target",
+            "t": "WRITE MAIN TARGET OF THE DAY"
+          },
+          {
+            "id": "sveglia-frutti",
+            "t": "2/3 FRUTTI"
+          },
+          {
+            "id": "sveglia-fascia",
+            "t": "FASCIA DAILY ROUTINE"
+          }
+        ]
+      },
+      {
+        "id": "fireblood",
+        "t": "FIREBLOOD"
+      },
+      {
+        "id": "gws1",
+        "t": "1ST G WORK SESSION",
+        "gws": 0
+      },
+      {
+        "id": "caffe-1",
+        "t": "CAFFÈ"
+      },
+      {
+        "id": "gws2",
+        "t": "2ND G WORK SESSION",
+        "gws": 1
+      },
+      {
+        "id": "spuntino-formaggio",
+        "t": "SPUNTINO FORMAGGIO"
+      },
+      {
+        "id": "gws3",
+        "t": "3RD G WORK SESSION",
+        "gws": 2
+      },
+      {
+        "id": "workout",
+        "t": "WORKOUT",
+        "sub": [
+          {
+            "id": "workout-doccia",
+            "t": "DOCCIA"
+          }
+        ],
+        "choice": [
+          {
+            "id": "workout-full",
+            "t": "FULL"
+          },
+          {
+            "id": "workout-med",
+            "t": "MED"
+          }
+        ]
+      },
+      {
+        "id": "pranzo",
+        "t": "PRANZO",
+        "sub": [
+          {
+            "id": "pranzo-zenzero",
+            "t": "ZENZERO"
+          },
+          {
+            "id": "pranzo-pasta-riso",
+            "t": "PASTA/RISO"
+          },
+          {
+            "id": "pranzo-uova-pesce",
+            "t": "UOVA/PESCE"
+          }
+        ]
+      },
+      {
+        "id": "routine-giorno",
+        "t": "ROUTINE",
+        "sub": [
+          {
+            "id": "routine-puzzle",
+            "t": "DAILY PUZZLE"
+          },
+          {
+            "id": "routine-lessons",
+            "t": "DAILY LESSONS"
+          },
+          {
+            "id": "routine-movimento",
+            "t": "15 MIN MOVIMENTO"
+          }
+        ]
+      },
+      {
+        "id": "caffe-2",
+        "t": "CAFFÈ"
+      },
+      {
+        "id": "frutti-15",
+        "t": "2/3 FRUTTI ALLE 15"
+      },
+      {
+        "id": "gws4",
+        "t": "4TH G WORK SESSION",
+        "gws": 3
+      },
+      {
+        "id": "gws5",
+        "t": "5TH G WORK SESSION",
+        "gws": 4
+      },
+      {
+        "id": "cena",
+        "t": "CENA",
+        "sub": [
+          {
+            "id": "cena-aglio",
+            "t": "SPICCHIO DI AGLIO"
+          },
+          {
+            "id": "cena-carne",
+            "t": "CARNE"
+          },
+          {
+            "id": "cena-uovo",
+            "t": "EVENTUALE 1 UOVO"
+          }
+        ]
+      },
+      {
+        "id": "studio",
+        "t": "STUDIO"
+      },
+      {
+        "id": "gws6",
+        "t": "6TH G WORK SESSION",
+        "gws": 5
+      },
+      {
+        "id": "routine-serale",
+        "t": "ROUTINE SERALE 21:00",
+        "sub": [
+          {
+            "id": "serale-pulizie",
+            "t": "PULIZIE"
+          },
+          {
+            "id": "serale-denti",
+            "t": "DENTI"
+          },
+          {
+            "id": "serale-esamina",
+            "t": "ESAMINA LA GIORNATA"
+          },
+          {
+            "id": "serale-domani",
+            "t": "DOMANI ORGANIZZATO"
+          },
+          {
+            "id": "serale-gambe",
+            "t": "GAMBE SUL MURO"
+          }
+        ]
+      },
+      {
+        "id": "non-masturbarti",
+        "t": "NO 🌽"
+      },
+      {
+        "id": "main-target",
+        "t": "MAIN TARGET OF THE DAY RAGGIUNTO"
+      }
+    ],
+    "mod": ""
   }
 }
