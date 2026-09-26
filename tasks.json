@@ -1,5 +1,5 @@
 {
-  "gen": 3,
+  "gen": 4,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -218,6 +218,17 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-25T06:30:16.105Z"
+    },
+    {
+      "id": "tmuit8rhddtu4",
+      "creata": "2026-09-26T19:56:29.089Z",
+      "nome": "UPGRADE SIFU",
+      "desc": "",
+      "rank": "A",
+      "cliente": "longkai",
+      "giorno": "2026-09-26",
+      "gws": 3,
+      "mod": "2026-09-26T19:56:29.089Z"
     }
   ],
   "clienti": [
