@@ -1,5 +1,5 @@
 {
-  "gen": 4,
+  "gen": 5,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -226,9 +226,31 @@
       "desc": "",
       "rank": "A",
       "cliente": "longkai",
-      "giorno": "2026-09-26",
-      "gws": 3,
-      "mod": "2026-09-26T19:56:29.089Z"
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-27T20:23:23.038Z"
+    },
+    {
+      "id": "tmuk9on6ig4n6",
+      "creata": "2026-09-27T20:24:30.042Z",
+      "nome": "Prove registrazione",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-28",
+      "gws": 0,
+      "mod": "2026-09-27T20:24:30.042Z"
+    },
+    {
+      "id": "tmuk9oye3taj5",
+      "creata": "2026-09-27T20:24:44.571Z",
+      "nome": "Scrivere nuovo video",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-28",
+      "gws": 1,
+      "mod": "2026-09-27T20:24:44.571Z"
     }
   ],
   "clienti": [
