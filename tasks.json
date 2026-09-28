@@ -1,5 +1,5 @@
 {
-  "gen": 5,
+  "gen": 6,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -251,6 +251,39 @@
       "giorno": "2026-09-28",
       "gws": 1,
       "mod": "2026-09-27T20:24:44.571Z"
+    },
+    {
+      "id": "tmul33z4ybfbe",
+      "creata": "2026-09-28T10:08:14.242Z",
+      "nome": "Scrivi video",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-29",
+      "gws": 1,
+      "mod": "2026-09-28T10:08:59.823Z"
+    },
+    {
+      "id": "tmul34pxhy487",
+      "creata": "2026-09-28T10:08:48.965Z",
+      "nome": "Fare i numeri di telefono",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-29",
+      "gws": 2,
+      "mod": "2026-09-28T10:08:55.157Z"
+    },
+    {
+      "id": "tmul359un9j6s",
+      "creata": "2026-09-28T10:09:14.783Z",
+      "nome": "8.00 Compra la carne",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-29",
+      "gws": 0,
+      "mod": "2026-09-28T10:09:14.783Z"
     }
   ],
   "clienti": [
