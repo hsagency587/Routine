@@ -1,5 +1,5 @@
 {
-  "gen": 6,
+  "gen": 7,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -277,13 +277,13 @@
     {
       "id": "tmul359un9j6s",
       "creata": "2026-09-28T10:09:14.783Z",
-      "nome": "8.00 Compra la carne",
+      "nome": "7.45  Compra la carne",
       "desc": "",
       "rank": "A",
       "cliente": null,
       "giorno": "2026-09-29",
       "gws": 0,
-      "mod": "2026-09-28T10:09:14.783Z"
+      "mod": "2026-09-28T10:10:43.654Z"
     }
   ],
   "clienti": [
