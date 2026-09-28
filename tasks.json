@@ -1,5 +1,5 @@
 {
-  "gen": 7,
+  "gen": 8,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -284,6 +284,17 @@
       "giorno": "2026-09-29",
       "gws": 0,
       "mod": "2026-09-28T10:10:43.654Z"
+    },
+    {
+      "id": "tmul91r5jpij1",
+      "creata": "2026-09-28T12:54:28.279Z",
+      "nome": "CHIAMA CRISTIANO FORMENTO",
+      "desc": "",
+      "rank": "A",
+      "cliente": null,
+      "giorno": "2026-09-29",
+      "gws": 2,
+      "mod": "2026-09-28T12:54:28.281Z"
     }
   ],
   "clienti": [
