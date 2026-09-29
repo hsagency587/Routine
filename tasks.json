@@ -1,5 +1,5 @@
 {
-  "gen": 8,
+  "gen": 9,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -237,9 +237,9 @@
       "desc": "",
       "rank": "A",
       "cliente": null,
-      "giorno": "2026-09-28",
-      "gws": 0,
-      "mod": "2026-09-27T20:24:30.042Z"
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-29T07:11:05.335Z"
     },
     {
       "id": "tmuk9oye3taj5",
@@ -248,9 +248,9 @@
       "desc": "",
       "rank": "A",
       "cliente": null,
-      "giorno": "2026-09-28",
-      "gws": 1,
-      "mod": "2026-09-27T20:24:44.571Z"
+      "giorno": null,
+      "gws": null,
+      "mod": "2026-09-29T07:11:05.335Z"
     },
     {
       "id": "tmul33z4ybfbe",
