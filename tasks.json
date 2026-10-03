@@ -1,5 +1,5 @@
 {
-  "gen": 11,
+  "gen": 12,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -110,39 +110,6 @@
       "mod": "2026-09-24T10:40:16.568Z"
     },
     {
-      "id": "tmu6pp0goy4mi",
-      "nome": "Organizziamo i video",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-18T08:43:54.648Z",
-      "mod": "2026-09-21T07:07:19.406Z"
-    },
-    {
-      "id": "tmu6pq8e8sr4y",
-      "nome": "Adatta video personalizzandolo",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-18T08:44:51.584Z",
-      "mod": "2026-09-21T07:07:19.407Z"
-    },
-    {
-      "id": "tmu6pqx7hphdu",
-      "nome": "Prepara video di AlbergADV",
-      "desc": "Contenuto, scrivi e visual",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-18T08:45:23.741Z",
-      "mod": "2026-09-21T07:07:19.407Z"
-    },
-    {
       "id": "tmubkft8wqiz1",
       "nome": "IDEA META ADS RISTORANTE",
       "desc": "Meta ads dirette ai ristoranti (con Anna come esempio) con offerta Top 3 + Google Ads",
@@ -229,50 +196,6 @@
       "giorno": null,
       "gws": null,
       "mod": "2026-09-27T20:23:23.038Z"
-    },
-    {
-      "id": "tmuk9on6ig4n6",
-      "creata": "2026-09-27T20:24:30.042Z",
-      "nome": "Prove registrazione",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-29T07:11:05.335Z"
-    },
-    {
-      "id": "tmuk9oye3taj5",
-      "creata": "2026-09-27T20:24:44.571Z",
-      "nome": "Scrivere nuovo video",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-29T07:11:05.335Z"
-    },
-    {
-      "id": "tmul33z4ybfbe",
-      "creata": "2026-09-28T10:08:14.242Z",
-      "nome": "Scrivi video",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-30T06:03:03.854Z"
-    },
-    {
-      "id": "tmul34pxhy487",
-      "creata": "2026-09-28T10:08:48.965Z",
-      "nome": "Fare i numeri di telefono",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-30T06:03:03.854Z"
     },
     {
       "id": "tmul91r5jpij1",
@@ -638,7 +561,14 @@
     "tmtv705o06gz2": "2026-09-22T06:37:09.947Z",
     "tmu2etaxntjal": "2026-09-22T06:44:10.926Z",
     "tmucbetzflgqn": "2026-09-24T09:12:36.635Z",
-    "tmul359un9j6s": "2026-10-03T20:34:17.829Z"
+    "tmul359un9j6s": "2026-10-03T20:34:17.829Z",
+    "tmu6pq8e8sr4y": "2026-10-03T20:36:46.712Z",
+    "tmul33z4ybfbe": "2026-10-03T20:36:49.400Z",
+    "tmuk9on6ig4n6": "2026-10-03T20:36:53.156Z",
+    "tmuk9oye3taj5": "2026-10-03T20:36:57.040Z",
+    "tmu6pqx7hphdu": "2026-10-03T20:37:00.664Z",
+    "tmu6pp0goy4mi": "2026-10-03T20:37:04.214Z",
+    "tmul34pxhy487": "2026-10-03T20:37:09.374Z"
   },
   "routine": {
     "tappe": [
