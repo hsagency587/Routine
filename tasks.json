@@ -1,16 +1,6 @@
 {
-  "gen": 13,
+  "gen": 14,
   "tasks": [
-    {
-      "id": "tmtr3qgn67781",
-      "nome": "Check Crypto Gem",
-      "desc": "",
-      "rank": "B",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "creata": "2026-09-07T10:32:38.082Z"
-    },
     {
       "id": "tmtv60sx3h3jo",
       "nome": "Chiama Agenti Di Nucci",
@@ -45,14 +35,14 @@
     },
     {
       "id": "tmtv6zdwanob2",
-      "nome": "GBP anna",
+      "nome": "Post GBP anna",
       "desc": "",
       "rank": "B",
       "cliente": "ristorante-da-anna",
       "giorno": null,
       "gws": null,
       "creata": "2026-09-10T07:14:37.978Z",
-      "mod": "2026-09-14T09:10:59.705Z"
+      "mod": "2026-10-03T20:39:21.099Z"
     },
     {
       "id": "tmtv70wfjyji4",
@@ -558,7 +548,8 @@
     "tmu6pqx7hphdu": "2026-10-03T20:37:00.664Z",
     "tmu6pp0goy4mi": "2026-10-03T20:37:04.214Z",
     "tmul34pxhy487": "2026-10-03T20:37:09.374Z",
-    "tmugl03zaym5v": "2026-10-03T20:37:53.180Z"
+    "tmugl03zaym5v": "2026-10-03T20:37:53.180Z",
+    "tmtr3qgn67781": "2026-10-03T20:39:06.533Z"
   },
   "routine": {
     "tappe": [
