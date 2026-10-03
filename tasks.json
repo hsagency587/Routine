@@ -1,5 +1,5 @@
 {
-  "gen": 10,
+  "gen": 11,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -267,17 +267,6 @@
       "id": "tmul34pxhy487",
       "creata": "2026-09-28T10:08:48.965Z",
       "nome": "Fare i numeri di telefono",
-      "desc": "",
-      "rank": "A",
-      "cliente": null,
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-30T06:03:03.854Z"
-    },
-    {
-      "id": "tmul359un9j6s",
-      "creata": "2026-09-28T10:09:14.783Z",
-      "nome": "7.45  Compra la carne",
       "desc": "",
       "rank": "A",
       "cliente": null,
@@ -648,7 +637,8 @@
     "tmtv70k47d2xo": "2026-09-22T06:37:05.476Z",
     "tmtv705o06gz2": "2026-09-22T06:37:09.947Z",
     "tmu2etaxntjal": "2026-09-22T06:44:10.926Z",
-    "tmucbetzflgqn": "2026-09-24T09:12:36.635Z"
+    "tmucbetzflgqn": "2026-09-24T09:12:36.635Z",
+    "tmul359un9j6s": "2026-10-03T20:34:17.829Z"
   },
   "routine": {
     "tappe": [
