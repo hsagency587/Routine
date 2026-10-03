@@ -1,5 +1,5 @@
 {
-  "gen": 12,
+  "gen": 13,
   "tasks": [
     {
       "id": "tmtr3qgn67781",
@@ -140,7 +140,7 @@
       "giorno": null,
       "gws": null,
       "creata": "2026-09-22T06:51:40.106Z",
-      "mod": "2026-09-24T10:41:34.060Z"
+      "mod": "2026-10-03T20:37:46.753Z"
     },
     {
       "id": "tmucq0vol11a8",
@@ -173,18 +173,7 @@
       "cliente": "bergamaschi",
       "giorno": null,
       "gws": null,
-      "mod": "2026-09-24T10:40:33.905Z"
-    },
-    {
-      "id": "tmugl03zaym5v",
-      "creata": "2026-09-25T06:30:16.105Z",
-      "nome": "Link 350 euri",
-      "desc": "",
-      "rank": "A",
-      "cliente": "manuela-lovo",
-      "giorno": null,
-      "gws": null,
-      "mod": "2026-09-25T06:30:16.105Z"
+      "mod": "2026-10-03T20:38:59.287Z"
     },
     {
       "id": "tmuit8rhddtu4",
@@ -568,7 +557,8 @@
     "tmuk9oye3taj5": "2026-10-03T20:36:57.040Z",
     "tmu6pqx7hphdu": "2026-10-03T20:37:00.664Z",
     "tmu6pp0goy4mi": "2026-10-03T20:37:04.214Z",
-    "tmul34pxhy487": "2026-10-03T20:37:09.374Z"
+    "tmul34pxhy487": "2026-10-03T20:37:09.374Z",
+    "tmugl03zaym5v": "2026-10-03T20:37:53.180Z"
   },
   "routine": {
     "tappe": [
