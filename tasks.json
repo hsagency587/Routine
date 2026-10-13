@@ -1,5 +1,5 @@
 {
-  "gen": 15,
+  "gen": 16,
   "tasks": [
     {
       "id": "tmtv60sx3h3jo",
@@ -231,7 +231,7 @@
   "workouts": [
     {
       "id": "tmtvosbo12fdw",
-      "nome": "CALI + WINGCHUN",
+      "nome": "CALI 1 + WINGCHUN",
       "giorni": [
         1,
         2,
@@ -274,7 +274,7 @@
           "desc": "Puoi muoverti e aggiustare"
         }
       ],
-      "mod": "2026-09-11T11:14:39.192Z"
+      "mod": "2026-10-13T20:28:17.779Z"
     },
     {
       "id": "tmtvupsmzi3cd",
