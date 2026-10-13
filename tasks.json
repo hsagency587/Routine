@@ -1,5 +1,5 @@
 {
-  "gen": 16,
+  "gen": 17,
   "tasks": [
     {
       "id": "tmtv60sx3h3jo",
@@ -231,7 +231,7 @@
   "workouts": [
     {
       "id": "tmtvosbo12fdw",
-      "nome": "CALI 1 + WINGCHUN",
+      "nome": "CALI  + WINGCHUN",
       "giorni": [
         1,
         2,
@@ -253,13 +253,6 @@
           "desc": ""
         },
         {
-          "id": "tmtvy5jslnlol",
-          "nome": "Australian",
-          "setrep": "3×15",
-          "rec": "1'30\"",
-          "desc": ""
-        },
-        {
           "id": "tmtvy7l243xox",
           "nome": "V push up",
           "setrep": "3×4",
@@ -268,13 +261,13 @@
         },
         {
           "id": "tmtvyh081cn7y",
-          "nome": "Front lever",
-          "setrep": "3×15",
+          "nome": "Australian",
+          "setrep": "2×20",
           "rec": "",
-          "desc": "Puoi muoverti e aggiustare"
+          "desc": ""
         }
       ],
-      "mod": "2026-10-13T20:28:17.779Z"
+      "mod": "2026-10-13T20:35:30.003Z"
     },
     {
       "id": "tmtvupsmzi3cd",
@@ -497,6 +490,30 @@
         }
       ],
       "mod": "2026-09-11T05:50:41.484Z"
+    },
+    {
+      "id": "tmv754pln7sof",
+      "nome": "ABS + WINGCHUN",
+      "giorni": [
+        2
+      ],
+      "esercizi": [
+        {
+          "id": "tmv755tul6wkk",
+          "nome": "Circuito 10 min abs",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        },
+        {
+          "id": "tmv7561c58kdx",
+          "nome": "Rullata",
+          "setrep": "",
+          "rec": "",
+          "desc": ""
+        }
+      ],
+      "mod": "2026-10-13T20:37:00.128Z"
     }
   ],
   "cancellate": {
