@@ -1,5 +1,5 @@
 {
-  "gen": 17,
+  "gen": 18,
   "tasks": [
     {
       "id": "tmtv60sx3h3jo",
@@ -234,7 +234,6 @@
       "nome": "CALI  + WINGCHUN",
       "giorni": [
         1,
-        2,
         4
       ],
       "esercizi": [
@@ -267,7 +266,7 @@
           "desc": ""
         }
       ],
-      "mod": "2026-10-13T20:35:30.003Z"
+      "mod": "2026-10-13T20:37:05.619Z"
     },
     {
       "id": "tmtvupsmzi3cd",
